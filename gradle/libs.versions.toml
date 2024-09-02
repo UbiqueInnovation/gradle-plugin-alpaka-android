@@ -1,0 +1,10 @@
+[versions]
+kotlin = "1.9.24"
+pluginPublish = "1.2.1"
+
+[plugins]
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin"}
+pluginPublish = { id = "com.gradle.plugin-publish", version.ref = "pluginPublish"}
+
+[libraries]
+junit = "junit:junit:4.13.2"

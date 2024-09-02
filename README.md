@@ -1,0 +1,1 @@
+# gradle-plugin-linth-android

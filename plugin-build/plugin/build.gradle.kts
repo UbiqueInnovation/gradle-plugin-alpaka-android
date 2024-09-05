@@ -10,17 +10,27 @@ dependencies {
     implementation(kotlin("stdlib"))
     implementation(gradleApi())
 
+    implementation(libs.agp)
+
+    implementation(libs.coroutines)
+    implementation(libs.okhttp)
+    implementation(libs.retrofit)
+    implementation(libs.retrofitConverterScalars)
+    implementation(libs.moshi)
+    implementation(libs.moshiKotlin)
+    implementation(libs.moshiAdapters)
+
     testImplementation(libs.junit)
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 }
 
 tasks.withType<KotlinCompile> {
     kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_1_8.toString()
+        jvmTarget = JavaVersion.VERSION_17.toString()
     }
 }
 

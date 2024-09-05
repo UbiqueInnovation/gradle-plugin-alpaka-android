@@ -13,7 +13,7 @@ class LinthPluginTest {
         val project = ProjectBuilder.builder().build()
         project.pluginManager.apply("ch.ubique.linth")
 
-        assert(project.tasks.getByName("templateExample") is TemplateExampleTask)
+        assert(project.tasks.getByName("templateExample") is UploadToUbDiagTask)
     }
 
     @Test
@@ -29,13 +29,13 @@ class LinthPluginTest {
         val project = ProjectBuilder.builder().build()
         project.pluginManager.apply("ch.ubique.linth")
         val aFile = File(project.projectDir, ".tmp")
-        (project.extensions.getByName("templateExampleConfig") as TemplateExtension).apply {
+        (project.extensions.getByName("templateExampleConfig") as LinthPluginConfig).apply {
             tag.set("a-sample-tag")
             message.set("just-a-message")
             outputFile.set(aFile)
         }
 
-        val task = project.tasks.getByName("templateExample") as TemplateExampleTask
+        val task = project.tasks.getByName("templateExample") as UploadToUbDiagTask
 
         assertEquals("a-sample-tag", task.tag.get())
         assertEquals("just-a-message", task.message.get())

@@ -1,5 +1,7 @@
 plugins {
     alias(libs.plugins.kotlin) apply false
+    alias(libs.plugins.androidApplication) apply false
+    alias(libs.plugins.kotlinAndroid) apply false
 }
 
 tasks.register("clean", Delete::class.java) {
@@ -9,7 +11,7 @@ tasks.register("clean", Delete::class.java) {
 tasks.register("preMerge") {
     description = "Runs all the tests/verification tasks on both top level and included build."
 
-    dependsOn(":example:check")
+    dependsOn(":appexample:check")
     dependsOn(gradle.includedBuild("plugin-build").task(":plugin:check"))
     dependsOn(gradle.includedBuild("plugin-build").task(":plugin:validatePlugins"))
 }

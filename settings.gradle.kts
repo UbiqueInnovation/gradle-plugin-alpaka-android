@@ -16,5 +16,5 @@ dependencyResolutionManagement {
     }
 }
 
-include(":example")
+include(":appexample")
 includeBuild("plugin-build")

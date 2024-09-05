@@ -3,19 +3,17 @@ package ch.ubique.linth
 import ch.ubique.linth.model.UploadRequest
 import ch.ubique.linth.network.BackendRepository
 import ch.ubique.linth.network.OkHttpInstance
-import com.android.build.gradle.AppExtension
-import kotlinx.coroutines.DelicateCoroutinesApi
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFile
+import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.options.Option
 import java.io.File
 
-@OptIn(DelicateCoroutinesApi::class)
 abstract class UploadToUbDiagTask : DefaultTask() {
+
 	init {
 		description = "Uploads Apk to UbDiag"
 		group = "publish"
@@ -35,9 +33,9 @@ abstract class UploadToUbDiagTask : DefaultTask() {
 	abstract val outputFile: RegularFileProperty
 	 */
 
-	@get:InputFile
+	@get:InputFiles
 	@get:Optional
-	abstract var inputApk: File?
+	abstract var inputApks: List<File>?
 
 	@get:Input
 	@get:Option(option = "uploadKey", description = "A proxy in format url:port")
@@ -51,8 +49,6 @@ abstract class UploadToUbDiagTask : DefaultTask() {
 	@TaskAction
 	fun uploadAction() {
 
-		val androidExtension = getAndroidExtension()
-
 		proxy?.let {
 			val proxyVal = it.split(":")
 			OkHttpInstance.setProxy(proxyVal[0], proxyVal[1].toInt())
@@ -61,28 +57,46 @@ abstract class UploadToUbDiagTask : DefaultTask() {
 		}
 
 		val backendRepository = BackendRepository()
-		val uploadRequest = UploadRequest(
-			apk = requireNotNull(inputApk),
-			appIcon = requireNotNull(inputApk),
-			appName = "Some fancy name",
-			packageName = "some.package.name",
-			flavor = "someFancyFlavor",
-			branch = "someFancyBranch",
-			minSdk = 0,
-			targetSdk = 0,
-			usesFeature = emptyList(),
-			buildNumber = 0L,
-			buildTime = 0L,
-			buildBatch = "buildBatch",
-			changelog = "Some fancy changelog",
-			signature = "someFancySignature",
-			version = "SomeVersion",
-			uploadKey = uploadKey,
-		)
 
 		runBlocking {
-			backendRepository.appsUpload(uploadRequest)
-			println("Upload to UbDiag successful.")
+			coroutineScope {
+				val allGood = awaitAll(
+					*requireNotNull(inputApks).map { inputApk ->
+						async(Dispatchers.IO) {
+							val uploadRequest = UploadRequest(
+								apk = inputApk,
+								appIcon = inputApk,
+								appName = "Some fancy name",
+								packageName = "some.package.name",
+								flavor = "someFancyFlavor",
+								branch = "someFancyBranch",
+								minSdk = 0,
+								targetSdk = 0,
+								usesFeature = emptyList(),
+								buildNumber = 0L,
+								buildTime = 0L,
+								buildBatch = "buildBatch",
+								changelog = "Some fancy changelog",
+								signature = "someFancySignature",
+								version = "SomeVersion",
+								uploadKey = uploadKey,
+							)
+							try {
+								backendRepository.appsUpload(uploadRequest)
+								true
+							} catch (e: Exception) {
+								logger.error("${e.message?.trim()} while uploading \"${inputApk.name}\" of flavor \"${uploadRequest.flavor}\".")
+								false
+							}
+						}
+					}.toTypedArray()
+				)
+				if(allGood.any { it.not() }){
+					logger.lifecycle("Upload to UbDiag had errors.")
+				} else {
+					logger.lifecycle("Upload to UbDiag successful.")
+				}
+			}
 		}
 
 
@@ -100,15 +114,6 @@ abstract class UploadToUbDiagTask : DefaultTask() {
 
 		outputFile.get().asFile.writeText("$prettyTag ${message.get()}")
 		 */
-	}
-
-
-	private fun getAndroidExtension(): AppExtension {
-		val ext = project.extensions.findByType(AppExtension::class.java) ?: error(
-			"Android gradle plugin extension has not been applied before"
-		)
-		return ext
-
 	}
 
 }

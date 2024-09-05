@@ -1,7 +1,6 @@
 package ch.ubique.linth
 
 import org.gradle.api.Project
-import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import javax.inject.Inject
 
@@ -11,8 +10,8 @@ abstract class LinthPluginConfig
 constructor(project: Project) {
 	private val objects = project.objects
 
-	val apkFile: RegularFileProperty = objects.fileProperty()
+	val flavors: Property<String> = objects.property(String::class.java)
+	//val apkFiles: ConfigurableFileCollection = objects.fileCollection()
 	val uploadKey: Property<String> = objects.property(String::class.java)
-
 	val proxy: Property<String> = objects.property(String::class.java)
 }

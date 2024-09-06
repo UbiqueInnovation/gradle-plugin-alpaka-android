@@ -1,10 +1,9 @@
 package ch.ubique.linth
 
 import ch.ubique.linth.common.GitUtils
-import ch.ubique.linth.common.capitalize
+import ch.ubique.linth.common.getMergedManifestFile
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import java.io.File
 
@@ -15,12 +14,10 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 	private val METADATA_KEY_BRANCH = "ch.ubique.linth.branch"
 	private val METADATA_KEY_FLAVOR = "ch.ubique.linth.flavor"
 
-
 	private var buildId: String = "0"
 	private var buildNumber: String = "0"
 	private var buildBranch: String = "master"
 	private var buildFlavor: String = "default"
-
 
 	init {
 		description = "Inject Metadata into Manifest"
@@ -28,7 +25,6 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 		buildId = project.findProperty("buildid")?.toString() ?: project.findProperty("ubappid")?.toString() ?: "localbuild"
 		buildNumber = project.findProperty("buildnumber")?.toString() ?: "0"
 		buildBranch = project.findProperty("branch")?.toString() ?: GitUtils.obtainBranch()
-
 	}
 
 	@get:Input
@@ -37,18 +33,12 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 	@TaskAction
 	fun injectMetadataIntoManifest() {
 		flavorAndBuildType.forEach { (flavor, buildType) ->
-			println("Injecting metadata into manifest for flavor: $flavor and buildType: $buildType")
-			val variantName = flavor + buildType.capitalize()
-			val manifestFile = File(
-				project.layout.buildDirectory.asFile.get(),
-				"intermediates/merged_manifests/${variantName}/process${variantName}Manifest/AndroidManifest.xml"
-			)
+			val manifestFile = project.getMergedManifestFile(flavor, buildType)
 			if (manifestFile.exists()) {
 				manipulateManifestFile(manifestFile)
 			} else {
 				println("Manifest file not found for flavor: $flavor and buildType: $buildType")
 			}
-
 		}
 	}
 
@@ -82,7 +72,7 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 	private fun addMetaData(manifest: String, metaName: String, metaValue: String): String {
 		val xmlAppClosingTag = "</application>"
 		val metaTag = "<meta-data android:name=\"$metaName\" android:value=\"$metaValue\" />"
-		return manifest.replace("${xmlAppClosingTag}", "    $metaTag\n    $xmlAppClosingTag")
+		return manifest.replace(xmlAppClosingTag, "    $metaTag\n    $xmlAppClosingTag")
 	}
 
 }

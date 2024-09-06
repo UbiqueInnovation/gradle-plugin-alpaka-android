@@ -27,7 +27,7 @@ abstract class LinthPlugin : Plugin<Project> {
 			manifestTask.flavorAndBuildType = flavorAndBuildType
 		}
 
-		//hook Manifest into android build process
+		//hook injectMetaTask into android build process
 		project.afterEvaluate {
 			androidExtension.applicationVariants.forEach { variant ->
 				variant.outputs.forEach { output ->

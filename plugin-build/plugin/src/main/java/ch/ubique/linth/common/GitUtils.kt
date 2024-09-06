@@ -19,7 +19,6 @@ object GitUtils {
 		if (branchName.isEmpty()) {
 			branchName = "develop"
 		}
-		println("Branch name: $branchName")
 		return branchName
 	}
 

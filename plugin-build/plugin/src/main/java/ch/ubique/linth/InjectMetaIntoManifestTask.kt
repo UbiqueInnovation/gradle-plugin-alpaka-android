@@ -10,10 +10,10 @@ import java.io.File
 
 abstract class InjectMetaIntoManifestTask : DefaultTask() {
 
-	private val METADATA_KEY_BUILDID = "ub_buildid"
-	private val METADATA_KEY_BUILDNUMBER = "ub_buildnumber"
-	private val METADATA_KEY_BRANCH = "ub_branch"
-	private val METADATA_KEY_FLAVOR = "ub_flavor"
+	private val METADATA_KEY_BUILDID = "ch.ubique.linth.buildid"
+	private val METADATA_KEY_BUILDNUMBER = "ch.ubique.linth.buildnumber"
+	private val METADATA_KEY_BRANCH = "ch.ubique.linth.branch"
+	private val METADATA_KEY_FLAVOR = "ch.ubique.linth.flavor"
 
 
 	private var buildId: String = "0"

@@ -56,5 +56,5 @@ dependencies {
 linthPlugin {
 	uploadKey = "f1c8846e-0c3a-44ac-b56a-53feb91d6383"
 
-//	proxy = "192.168.8.167:8888"
+	//proxy = "192.168.102.147:8888"
 }

@@ -22,6 +22,7 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 	init {
 		description = "Inject Metadata into Manifest"
 		group = "linth"
+
 		buildId = project.findProperty("buildid")?.toString() ?: project.findProperty("ubappid")?.toString() ?: "localbuild"
 		buildNumber = project.findProperty("buildnumber")?.toString() ?: "0"
 		buildBranch = project.findProperty("branch")?.toString() ?: GitUtils.obtainBranch()

@@ -93,13 +93,13 @@ abstract class LinthPlugin : Plugin<Project> {
 					UploadRequest(
 						apk = it.outputFile,
 						appIcon = it.outputFile,
-						appName = "some fancy name",
+						appName = "", //will be set from manifest
 						packageName = packageName,
 						flavor = flavor,
 						branch = "someFancyBranch",
 						minSdk = minSdk,
 						targetSdk = targetSdk,
-						usesFeature = emptyList(),
+						usesFeature = emptyList(), //will be set from manifest
 						buildNumber = 0L,
 						buildTime = 0L,
 						buildBatch = "buildBatch",
@@ -110,6 +110,8 @@ abstract class LinthPlugin : Plugin<Project> {
 				}
 
 				project.tasks.register("uploadToLinth$flavorBuild", UploadToLinthBackend::class.java) { uploadTask ->
+					uploadTask.flavor = flavor
+					uploadTask.buildType = buildType
 					uploadTask.uploadKey = extension.uploadKey.get()
 					uploadTask.proxy = extension.proxy.orNull
 					uploadTask.uploadRequest = uploadRequest

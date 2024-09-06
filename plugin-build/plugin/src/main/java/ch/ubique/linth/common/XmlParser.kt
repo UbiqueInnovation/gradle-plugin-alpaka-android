@@ -17,7 +17,7 @@ class XmlParser(
 		root = document.documentElement
 	}
 
-	fun findProperty(tag: String, property: String): String? {
+	fun findAttribute(tag: String, attrib: String, matchingAttribValue: String? = null, findTextValue: Boolean = false): String? {
 		val nodeList = root.childNodes
 		for (i in 0 until nodeList.length) {
 			val node = nodeList.item(i)
@@ -29,8 +29,22 @@ class XmlParser(
 					val attributes = element.attributes
 					for (j in 0 until attributes.length) {
 						val attribute = attributes.item(j)
-						if (attribute.nodeName == property) {
-							return attribute.nodeValue
+						if (attribute.nodeName == attrib) {
+							if (matchingAttribValue != null) {
+								if (attribute.nodeValue == matchingAttribValue) {
+									return if (findTextValue) {
+										element.firstChild.textContent
+									} else {
+										attribute.nodeValue
+									}
+								}
+							} else {
+								return if (findTextValue) {
+									element.firstChild.textContent
+								} else {
+									attribute.nodeValue
+								}
+							}
 						}
 					}
 					return null

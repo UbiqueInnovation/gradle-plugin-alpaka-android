@@ -19,7 +19,7 @@ object IconUtils {
 		}
 
 		val xmlParser = XmlParser(manifestFile)
-		val fileName = xmlParser.findProperty("application", "android:icon")
+		val fileName = xmlParser.findAttribute("application", "android:icon")
 
 		return fileName?.split("/")?.get(1)
 	}

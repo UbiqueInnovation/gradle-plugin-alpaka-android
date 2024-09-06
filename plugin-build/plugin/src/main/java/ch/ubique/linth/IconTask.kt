@@ -2,9 +2,8 @@ package ch.ubique.linth
 
 import ch.ubique.linth.common.IconUtils
 import ch.ubique.linth.common.getMergedManifestFile
-import com.android.build.gradle.BaseExtension
+import ch.ubique.linth.common.getResDirs
 import org.gradle.api.DefaultTask
-import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Optional
@@ -41,7 +40,7 @@ abstract class IconTask : DefaultTask() {
 		)
 
 		val generatedResDir = File("$buildDir/generated/res/launcher-icon/")
-		
+
 		// get banner label
 		val defaultLabelEnabled = false//android.defaultConfig.launcherIconLabelEnabled
 		val flavorLabelEnabled = true//flavor.launcherIconLabelEnabled
@@ -53,25 +52,7 @@ abstract class IconTask : DefaultTask() {
 		}
 
 		val manifestFile = project.getMergedManifestFile(flavor, buildType)
-
-		val androidModules: List<BaseExtension> = project.configurations
-			.asSequence()
-			.flatMap { it.dependencies }
-			.filterIsInstance<ProjectDependency>()
-			.map { it.dependencyProject }
-			.distinct()
-			.mapNotNull { it.extensions.findByType(BaseExtension::class.java) }
-			.toList()
-
-		val resDirs: List<File> = androidModules
-			.flatMap {
-				listOfNotNull(
-					it.sourceSets.findByName(flavor),
-					it.sourceSets.findByName("main")
-				)
-			}
-			.flatMap { it.res.srcDirs }
-			.filter { !it.path.contains("generated") }
+		val resDirs = project.getResDirs(flavor)
 
 		val allIcons = IconUtils.findIcons(resDirs, manifestFile)
 

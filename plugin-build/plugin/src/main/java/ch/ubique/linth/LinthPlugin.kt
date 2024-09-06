@@ -96,14 +96,14 @@ abstract class LinthPlugin : Plugin<Project> {
 						appName = "", //will be set from manifest
 						packageName = packageName,
 						flavor = flavor,
-						branch = "someFancyBranch",
+						branch = "", //will be set inside uploadTask
 						minSdk = minSdk,
 						targetSdk = targetSdk,
 						usesFeature = emptyList(), //will be set from manifest
 						buildNumber = 0L,
 						buildTime = 0L,
 						buildBatch = "buildBatch",
-						changelog = "Some fancy changelog",
+						changelog = "", //will be set inside uploadTask
 						signature = "someFancySignature",
 						version = versionName,
 					)

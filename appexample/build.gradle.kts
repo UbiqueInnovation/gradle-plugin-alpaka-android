@@ -55,8 +55,8 @@ dependencies {
 
 linthPlugin {
 	//apkFile = getLayout().buildDirectory.file("outputs/apk/dev/debug/example.apk")
-	uploadKey = "712d6c5e-b23a-4354-8c77-a8440d436ede"
+	uploadKey = "f1c8846e-0c3a-44ac-b56a-53feb91d6383"
 	flavors = "dev"
 
-	proxy = "192.168.8.167:8888"
+//	proxy = "192.168.8.167:8888"
 }

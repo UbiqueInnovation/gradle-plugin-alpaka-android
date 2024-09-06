@@ -15,7 +15,7 @@ abstract class LinthPlugin : Plugin<Project> {
 		val androidExtension = getAndroidExtension(project)
 
 		//hook manifestTask into android build process
-		val manifestTask = project.tasks.register("injectMetaDataIntoManifest", ManifestTask::class.java) { manifestTask ->
+		val injectMetaTask = project.tasks.register("injectMetaDataIntoManifest", InjectMetaIntoManifestTask::class.java) { manifestTask ->
 
 			val flavorAndBuildType = mutableSetOf<Pair<String, String>>()
 
@@ -31,7 +31,7 @@ abstract class LinthPlugin : Plugin<Project> {
 		project.afterEvaluate {
 			androidExtension.applicationVariants.forEach { variant ->
 				variant.outputs.forEach { output ->
-					output.processManifestProvider.get().finalizedBy(manifestTask)
+					output.processManifestProvider.get().finalizedBy(injectMetaTask)
 				}
 			}
 		}

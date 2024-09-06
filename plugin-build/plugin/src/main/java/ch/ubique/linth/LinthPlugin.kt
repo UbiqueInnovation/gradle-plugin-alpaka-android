@@ -14,6 +14,28 @@ abstract class LinthPlugin : Plugin<Project> {
 
 		val androidExtension = getAndroidExtension(project)
 
+		//hook manifestTask into android build process
+		val manifestTask = project.tasks.register("injectMetaDataIntoManifest", ManifestTask::class.java) { manifestTask ->
+
+			val flavorAndBuildType = mutableSetOf<Pair<String, String>>()
+
+			androidExtension.applicationVariants.forEach { variant ->
+				val flavor = variant.flavorName.capitalize()
+				val buildType = variant.buildType.name.capitalize()
+				flavorAndBuildType.add(flavor to buildType)
+			}
+			manifestTask.flavorAndBuildType = flavorAndBuildType
+		}
+
+		//hook Manifest into android build process
+		project.afterEvaluate {
+			androidExtension.applicationVariants.forEach { variant ->
+				variant.outputs.forEach { output ->
+					output.processManifestProvider.get().finalizedBy(manifestTask)
+				}
+			}
+		}
+
 		val iconTask = project.tasks.register("generateAppIcon", IconTask::class.java) { iconTask ->
 
 			val flavors = mutableSetOf<String>()
@@ -38,6 +60,8 @@ abstract class LinthPlugin : Plugin<Project> {
 				}
 			}
 		}
+
+
 
 		project.tasks.register("uploadToUbDiag", UploadToUbDiagTask::class.java) { uploadTask ->
 

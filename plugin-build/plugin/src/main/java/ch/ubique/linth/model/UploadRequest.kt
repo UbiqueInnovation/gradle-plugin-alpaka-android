@@ -19,10 +19,9 @@ data class UploadRequest(
 	val changelog: String,
 	val signature: String,
 	val version: String,
-	val uploadKey: String,
 ) {
 
-	fun toUploadDataJson() = UploadDataJson(
+	fun toUploadDataJson(uploadKey: String) = UploadDataJson(
 		name = appName,
 		packageName = packageName,
 		flavor = flavor,

@@ -28,8 +28,8 @@ android {
 	flavorDimensions += "version"
 	productFlavors {
 		create("dev") {
-			applicationIdSuffix = ".demo"
-			versionNameSuffix = "-demo"
+			applicationIdSuffix = ".dev"
+			versionNameSuffix = "-dev"
 		}
 		create("prod") {
 			applicationIdSuffix = ".prod"

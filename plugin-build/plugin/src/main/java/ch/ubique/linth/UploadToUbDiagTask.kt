@@ -6,11 +6,9 @@ import ch.ubique.linth.network.OkHttpInstance
 import kotlinx.coroutines.*
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFiles
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.options.Option
-import java.io.File
 
 abstract class UploadToUbDiagTask : DefaultTask() {
 
@@ -18,24 +16,6 @@ abstract class UploadToUbDiagTask : DefaultTask() {
 		description = "Uploads Apk to UbDiag"
 		group = "publish"
 	}
-
-	/*
-	@get:Input
-	@get:Option(option = "message", description = "A message to be printed in the output file")
-	abstract val message: Property<String>
-
-	@get:Input
-	@get:Option(option = "tag", description = "A Tag to be used for debug and in the output file")
-	@get:Optional
-	abstract val tag: Property<String>
-
-	@get:OutputFile
-	abstract val outputFile: RegularFileProperty
-	 */
-
-	@get:InputFiles
-	@get:Optional
-	abstract var inputApks: List<File>?
 
 	@get:Input
 	@get:Option(option = "uploadKey", description = "A proxy in format url:port")
@@ -45,6 +25,9 @@ abstract class UploadToUbDiagTask : DefaultTask() {
 	@get:Option(option = "proxy", description = "A proxy in format url:port")
 	@get:Optional
 	abstract var proxy: String?
+
+	@get:Input
+	abstract var uploadRequests: List<UploadRequest>
 
 	@TaskAction
 	fun uploadAction() {
@@ -61,37 +44,20 @@ abstract class UploadToUbDiagTask : DefaultTask() {
 		runBlocking {
 			coroutineScope {
 				val allGood = awaitAll(
-					*requireNotNull(inputApks).map { inputApk ->
+					*uploadRequests.map { uploadRequest ->
+						val apkName = uploadRequest.apk.name
 						async(Dispatchers.IO) {
-							val uploadRequest = UploadRequest(
-								apk = inputApk,
-								appIcon = inputApk,
-								appName = "Some fancy name",
-								packageName = "some.package.name",
-								flavor = "someFancyFlavor",
-								branch = "someFancyBranch",
-								minSdk = 0,
-								targetSdk = 0,
-								usesFeature = emptyList(),
-								buildNumber = 0L,
-								buildTime = 0L,
-								buildBatch = "buildBatch",
-								changelog = "Some fancy changelog",
-								signature = "someFancySignature",
-								version = "SomeVersion",
-								uploadKey = uploadKey,
-							)
 							try {
-								backendRepository.appsUpload(uploadRequest)
+								backendRepository.appsUpload(uploadRequest = uploadRequest, uploadKey = uploadKey)
 								true
 							} catch (e: Exception) {
-								logger.error("${e.message?.trim()} while uploading \"${inputApk.name}\" of flavor \"${uploadRequest.flavor}\".")
+								logger.error("${e.message?.trim()} while uploading \"$apkName\" of flavor \"${uploadRequest.flavor}\".")
 								false
 							}
 						}
 					}.toTypedArray()
 				)
-				if(allGood.any { it.not() }){
+				if (allGood.any { it.not() }) {
 					logger.lifecycle("Upload to UbDiag had errors.")
 				} else {
 					logger.lifecycle("Upload to UbDiag successful.")

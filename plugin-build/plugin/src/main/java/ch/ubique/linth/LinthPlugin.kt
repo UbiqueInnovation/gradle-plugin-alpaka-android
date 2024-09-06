@@ -1,10 +1,10 @@
 package ch.ubique.linth
 
 import ch.ubique.linth.common.capitalize
+import ch.ubique.linth.model.UploadRequest
 import com.android.build.gradle.AppExtension
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import java.io.File
 
 abstract class LinthPlugin : Plugin<Project> {
 
@@ -17,26 +17,46 @@ abstract class LinthPlugin : Plugin<Project> {
 			uploadTask.uploadKey = extension.uploadKey.get()
 			uploadTask.proxy = extension.proxy.orNull
 
-			//val apkFilesNotSet = extension.apkFiles.isEmpty.not()
-
 			// setup upload task
-			val releaseApks = mutableListOf<File>()
+			val uploadRequests = mutableListOf<UploadRequest>()
 			val uploadFlavors = extension.flavors.orNull?.split(",")?.map { it.trim() }
+
+			val minSdk = requireNotNull(androidExtension.defaultConfig.minSdk)
+			val targetSdk = requireNotNull(androidExtension.defaultConfig.targetSdk)
+			val versionName = requireNotNull(androidExtension.defaultConfig.versionName)
 
 			androidExtension.applicationVariants.forEach { variant ->
 				val flavor = variant.flavorName.capitalize()
+				val packageName = variant.applicationId
 				if (uploadFlavors == null || uploadFlavors.contains(variant.flavorName)) {
 					uploadTask.dependsOn(project.tasks.named("assemble${flavor}Release"))
 
 					variant.outputs.forEach {
 						if (it.outputFile.parentFile.name == "release") {
-							releaseApks.add(it.outputFile)
+							val uploadRequest = UploadRequest(
+								apk = it.outputFile,
+								appIcon = it.outputFile,
+								appName = "some fancy name",
+								packageName = packageName,
+								flavor = flavor,
+								branch = "someFancyBranch",
+								minSdk = minSdk,
+								targetSdk = targetSdk,
+								usesFeature = emptyList(),
+								buildNumber = 0L,
+								buildTime = 0L,
+								buildBatch = "buildBatch",
+								changelog = "Some fancy changelog",
+								signature = "someFancySignature",
+								version = versionName,
+							)
+							uploadRequests.add(uploadRequest)
 						}
 					}
 				}
 			}
 
-			uploadTask.inputApks = releaseApks
+			uploadTask.uploadRequests = uploadRequests.toList()
 		}
 
 	}

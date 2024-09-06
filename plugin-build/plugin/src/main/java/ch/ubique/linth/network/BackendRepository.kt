@@ -45,9 +45,9 @@ class BackendRepository {
 		resetService()
 	}
 
-	suspend fun appsUpload(uploadRequest: UploadRequest) {
+	suspend fun appsUpload(uploadRequest: UploadRequest, uploadKey: String) {
 		val data = MoshiBuilder.createMoshi()
-			.toJson(uploadRequest.toUploadDataJson())
+			.toJson(uploadRequest.toUploadDataJson(uploadKey = uploadKey))
 			.toByteArray()
 			.toRequestBody("application/json".toMediaType())
 

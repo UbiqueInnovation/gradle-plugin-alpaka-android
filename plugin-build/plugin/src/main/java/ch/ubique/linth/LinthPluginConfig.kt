@@ -11,7 +11,7 @@ constructor(project: Project) {
 	private val objects = project.objects
 
 	val flavors: Property<String> = objects.property(String::class.java)
-	//val apkFiles: ConfigurableFileCollection = objects.fileCollection()
 	val uploadKey: Property<String> = objects.property(String::class.java)
+
 	val proxy: Property<String> = objects.property(String::class.java)
 }

@@ -3,6 +3,7 @@ package ch.ubique.linth
 import ch.ubique.linth.common.capitalize
 import ch.ubique.linth.model.UploadRequest
 import com.android.build.gradle.AppExtension
+import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 
@@ -13,7 +14,33 @@ abstract class LinthPlugin : Plugin<Project> {
 
 		val androidExtension = getAndroidExtension(project)
 
+		val iconTask = project.tasks.register("generateAppIcon", IconTask::class.java) { iconTask ->
+
+			val flavors = mutableSetOf<String>()
+
+			androidExtension.applicationVariants.forEach { variant ->
+				val flavor = variant.flavorName.capitalize()
+				flavors.add(flavor)
+			}
+
+			iconTask.flavors = flavors
+		}
+
+		//hook iconTask into android build process
+		project.afterEvaluate {
+			androidExtension.applicationVariants.forEach { variant ->
+				val variantName = variant.name.capitalize()
+				variant.outputs.forEach { output ->
+					iconTask.dependsOn(output.processManifestProvider)
+					project.tasks.named("generate${variantName}Resources") {
+						it.dependsOn(iconTask)
+					}
+				}
+			}
+		}
+
 		project.tasks.register("uploadToUbDiag", UploadToUbDiagTask::class.java) { uploadTask ->
+
 			uploadTask.uploadKey = extension.uploadKey.get()
 			uploadTask.proxy = extension.proxy.orNull
 

@@ -14,7 +14,7 @@ abstract class UploadToUbDiagTask : DefaultTask() {
 
 	init {
 		description = "Uploads Apk to UbDiag"
-		group = "publish"
+		group = "linth"
 	}
 
 	@get:Input

@@ -54,7 +54,6 @@ dependencies {
 }
 
 linthPlugin {
-	//apkFile = getLayout().buildDirectory.file("outputs/apk/dev/debug/example.apk")
 	uploadKey = "f1c8846e-0c3a-44ac-b56a-53feb91d6383"
 	flavors = "dev"
 

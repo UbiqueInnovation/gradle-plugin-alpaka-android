@@ -38,18 +38,35 @@ abstract class LinthPlugin : Plugin<Project> {
 
 		val iconTask = project.tasks.register("generateAppIcon", IconTask::class.java) { iconTask ->
 
-			val flavors = mutableSetOf<String>()
+			val flavorAndBuildType = mutableSetOf<Pair<String, String>>()
 
 			androidExtension.applicationVariants.forEach { variant ->
 				val flavor = variant.flavorName.capitalize()
-				flavors.add(flavor)
+				val buildType = variant.buildType.name.capitalize()
+				flavorAndBuildType.add(flavor to buildType)
 			}
 
-			iconTask.flavors = flavors
+			iconTask.flavorAndBuildType = flavorAndBuildType
+			iconTask.targetWebIcon = null
 		}
 
 		//hook iconTask into android build process
 		project.afterEvaluate {
+
+			val buildDir = project.layout.buildDirectory.asFile.get()
+
+			androidExtension.productFlavors.configureEach { flavor ->
+				// Add the property 'launcherIconLabel' to each product flavor and set the default value to its name
+				//flavor.set("launcherIconLabel", flavor.name)
+				//flavor.ext.set("launcherIconLabelEnabled", (Boolean) null)
+
+				// Add generated icon path to res-SourceSet. This must be here otherwise it is too late!
+				val sourceSet = androidExtension.sourceSets.maybeCreate(flavor.name)
+				sourceSet.res {
+					srcDir("$buildDir/generated/res/launcher-icon/${flavor.name}/")
+				}
+			}
+
 			androidExtension.applicationVariants.forEach { variant ->
 				val variantName = variant.name.capitalize()
 				variant.outputs.forEach { output ->
@@ -60,8 +77,6 @@ abstract class LinthPlugin : Plugin<Project> {
 				}
 			}
 		}
-
-
 
 		project.tasks.register("uploadToUbDiag", UploadToUbDiagTask::class.java) { uploadTask ->
 

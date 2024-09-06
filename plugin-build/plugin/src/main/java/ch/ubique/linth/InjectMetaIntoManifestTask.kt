@@ -34,7 +34,6 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 	@get:Input
 	abstract var flavorAndBuildType: Set<Pair<String, String>>
 
-
 	@TaskAction
 	fun injectMetadataIntoManifest() {
 		flavorAndBuildType.forEach { (flavor, buildType) ->

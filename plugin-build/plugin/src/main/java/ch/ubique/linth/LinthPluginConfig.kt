@@ -10,7 +10,6 @@ abstract class LinthPluginConfig
 constructor(project: Project) {
 	private val objects = project.objects
 
-	val flavors: Property<String> = objects.property(String::class.java)
 	val uploadKey: Property<String> = objects.property(String::class.java)
 
 	val proxy: Property<String> = objects.property(String::class.java)

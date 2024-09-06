@@ -14,40 +14,25 @@ abstract class LinthPlugin : Plugin<Project> {
 
 		val androidExtension = getAndroidExtension(project)
 
-		//hook manifestTask into android build process
-		val injectMetaTask = project.tasks.register("injectMetaDataIntoManifest", InjectMetaIntoManifestTask::class.java) { manifestTask ->
-
-			val flavorAndBuildType = mutableSetOf<Pair<String, String>>()
-
-			androidExtension.applicationVariants.forEach { variant ->
-				val flavor = variant.flavorName.capitalize()
-				val buildType = variant.buildType.name.capitalize()
-				flavorAndBuildType.add(flavor to buildType)
-			}
-			manifestTask.flavorAndBuildType = flavorAndBuildType
-		}
-
 		//hook injectMetaTask into android build process
 		project.afterEvaluate {
 			androidExtension.applicationVariants.forEach { variant ->
+				val flavor = variant.flavorName.capitalize()
+				val buildType = variant.buildType.name.capitalize()
+				val flavorBuild = flavor + buildType
+
+				val injectMetaTask = project.tasks.register(
+					"injectMetaDataIntoManifest$flavorBuild",
+					InjectMetaIntoManifestTask::class.java
+				) { manifestTask ->
+					manifestTask.flavor = flavor
+					manifestTask.buildType = buildType
+				}
+
 				variant.outputs.forEach { output ->
 					output.processManifestProvider.get().finalizedBy(injectMetaTask)
 				}
 			}
-		}
-
-		val iconTask = project.tasks.register("generateAppIcon", IconTask::class.java) { iconTask ->
-
-			val flavorAndBuildType = mutableSetOf<Pair<String, String>>()
-
-			androidExtension.applicationVariants.forEach { variant ->
-				val flavor = variant.flavorName.capitalize()
-				val buildType = variant.buildType.name.capitalize()
-				flavorAndBuildType.add(flavor to buildType)
-			}
-
-			iconTask.flavorAndBuildType = flavorAndBuildType
-			iconTask.targetWebIcon = null
 		}
 
 		//hook iconTask into android build process
@@ -55,6 +40,7 @@ abstract class LinthPlugin : Plugin<Project> {
 
 			val buildDir = project.layout.buildDirectory.asFile.get()
 
+			//make sure generated sources are used by build process
 			androidExtension.productFlavors.configureEach { flavor ->
 				// Add the property 'launcherIconLabel' to each product flavor and set the default value to its name
 				//flavor.set("launcherIconLabel", flavor.name)
@@ -69,60 +55,66 @@ abstract class LinthPlugin : Plugin<Project> {
 
 			androidExtension.applicationVariants.forEach { variant ->
 				val variantName = variant.name.capitalize()
+				val flavor = variant.flavorName.capitalize()
+				val buildType = variant.buildType.name.capitalize()
+				val flavorBuild = flavor + buildType
+
+				val iconTask = project.tasks.register("generateAppIcon$flavorBuild", IconTask::class.java) { iconTask ->
+					iconTask.flavor = flavor
+					iconTask.buildType = buildType
+					iconTask.targetWebIcon = null
+				}
+
 				variant.outputs.forEach { output ->
 					iconTask.dependsOn(output.processManifestProvider)
 					project.tasks.named("generate${variantName}Resources") {
 						it.dependsOn(iconTask)
 					}
 				}
+
 			}
 		}
 
-		project.tasks.register("uploadToUbDiag", UploadToUbDiagTask::class.java) { uploadTask ->
-
-			uploadTask.uploadKey = extension.uploadKey.get()
-			uploadTask.proxy = extension.proxy.orNull
-
-			// setup upload task
-			val uploadRequests = mutableListOf<UploadRequest>()
-			val uploadFlavors = extension.flavors.orNull?.split(",")?.map { it.trim() }
-
-			val minSdk = requireNotNull(androidExtension.defaultConfig.minSdk)
-			val targetSdk = requireNotNull(androidExtension.defaultConfig.targetSdk)
-			val versionName = requireNotNull(androidExtension.defaultConfig.versionName)
+		//hook uploadTask into android build process
+		project.afterEvaluate {
 
 			androidExtension.applicationVariants.forEach { variant ->
 				val flavor = variant.flavorName.capitalize()
-				val packageName = variant.applicationId
-				if (uploadFlavors == null || uploadFlavors.contains(variant.flavorName)) {
-					uploadTask.dependsOn(project.tasks.named("assemble${flavor}Release"))
+				val buildType = variant.buildType.name.capitalize()
+				val flavorBuild = flavor + buildType
+				if (buildType != "Release") return@forEach
 
-					variant.outputs.forEach {
-						if (it.outputFile.parentFile.name == "release") {
-							val uploadRequest = UploadRequest(
-								apk = it.outputFile,
-								appIcon = it.outputFile,
-								appName = "some fancy name",
-								packageName = packageName,
-								flavor = flavor,
-								branch = "someFancyBranch",
-								minSdk = minSdk,
-								targetSdk = targetSdk,
-								usesFeature = emptyList(),
-								buildNumber = 0L,
-								buildTime = 0L,
-								buildBatch = "buildBatch",
-								changelog = "Some fancy changelog",
-								signature = "someFancySignature",
-								version = versionName,
-							)
-							uploadRequests.add(uploadRequest)
-						}
-					}
+				val packageName = variant.applicationId
+				val minSdk = requireNotNull(androidExtension.defaultConfig.minSdk)
+				val targetSdk = requireNotNull(androidExtension.defaultConfig.targetSdk)
+				val versionName = requireNotNull(androidExtension.defaultConfig.versionName)
+
+				val uploadRequest = variant.outputs.first().let {
+					UploadRequest(
+						apk = it.outputFile,
+						appIcon = it.outputFile,
+						appName = "some fancy name",
+						packageName = packageName,
+						flavor = flavor,
+						branch = "someFancyBranch",
+						minSdk = minSdk,
+						targetSdk = targetSdk,
+						usesFeature = emptyList(),
+						buildNumber = 0L,
+						buildTime = 0L,
+						buildBatch = "buildBatch",
+						changelog = "Some fancy changelog",
+						signature = "someFancySignature",
+						version = versionName,
+					)
+				}
+
+				project.tasks.register("uploadToLinth$flavorBuild", UploadToLinthBackend::class.java) { uploadTask ->
+					uploadTask.uploadKey = extension.uploadKey.get()
+					uploadTask.proxy = extension.proxy.orNull
+					uploadTask.uploadRequest = uploadRequest
 				}
 			}
-
-			uploadTask.uploadRequests = uploadRequests.toList()
 		}
 
 	}

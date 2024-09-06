@@ -28,20 +28,20 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 	}
 
 	@get:Input
-	abstract var flavorAndBuildType: Set<Pair<String, String>>
+	abstract var flavor: String
+
+	@get:Input
+	abstract var buildType: String
 
 	@TaskAction
 	fun injectMetadataIntoManifest() {
-		flavorAndBuildType.forEach { (flavor, buildType) ->
-			val manifestFile = project.getMergedManifestFile(flavor, buildType)
-			if (manifestFile.exists()) {
-				manipulateManifestFile(manifestFile)
-			} else {
-				println("Manifest file not found for flavor: $flavor and buildType: $buildType")
-			}
+		val manifestFile = project.getMergedManifestFile(flavor, buildType)
+		if (manifestFile.exists()) {
+			manipulateManifestFile(manifestFile)
+		} else {
+			println("Manifest file not found for flavor: $flavor and buildType: $buildType")
 		}
 	}
-
 
 	/**
 	 * Add custom meta data to manifest.

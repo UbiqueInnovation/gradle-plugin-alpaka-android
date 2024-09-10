@@ -61,7 +61,7 @@ class BackendRepository {
 
 	private fun File.toPartMap(partName: String, mimeType: String): Map<String, RequestBody> {
 		val payload = asRequestBody(contentType = mimeType.toMediaType())
-		return mapOf("$partName\"; filename=\"${name}" to payload)
+		return mapOf("$partName\"; filename=\"$name" to payload)
 	}
 
 }

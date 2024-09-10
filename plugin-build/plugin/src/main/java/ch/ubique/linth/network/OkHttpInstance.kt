@@ -51,18 +51,6 @@ object OkHttpInstance {
 			}
 		}
 		proxy(proxy)
-
-		val userAgent = "LinthPlugin TODO Version"
-		/*
-		userAgentAndLanguageInterceptor = UserAgentAndAcceptLanguageInterceptor(userAgent, languageTag).also {
-			addInterceptor(it)
-		}
-		*/
-
-		/*
-		val appToken = AppPreferences.getInstance(context).appToken
-		addInterceptor(UserAppTokenInterceptor(appToken))
-		*/
 	}.build()
 
 	@Throws(CertificateException::class, KeyStoreException::class, NoSuchAlgorithmException::class, IllegalStateException::class)

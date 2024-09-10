@@ -161,7 +161,6 @@ object IconUtils {
 	 */
 	fun findLargestIcon(iconFiles: List<File>): File? {
 		val filteredIconFiles = iconFiles.filter { !it.name.contains("_foreground") }
-
 		return filteredIconFiles.maxByOrNull { it.length() }
 	}
 }

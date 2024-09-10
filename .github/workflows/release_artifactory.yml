@@ -1,0 +1,24 @@
+name: Publish to Artifactory
+
+on:
+  release:
+    types: [ published ]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout repository
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      # Setup JDK environment
+      - name: Set up JDK
+        uses: actions/setup-java@v4.3.0
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # Run the Gradle publish task
+      - name: Build and publish artifact
+        run: ./gradlew clean artifactoryPublish -PubiqueMavenRootUrl=${{secrets.UB_ARTIFACTORY_URL}} -PubiqueMavenRepoName=${{secrets.UB_ARTIFACTORY_REPO_ANDROID}} -PubiqueMavenUser=${{secrets.UB_ARTIFACTORY_USER}} -PubiqueMavenPass=${{secrets.UB_ARTIFACTORY_PASSWORD}}

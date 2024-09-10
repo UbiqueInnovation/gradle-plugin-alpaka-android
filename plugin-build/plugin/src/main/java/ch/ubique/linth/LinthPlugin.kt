@@ -13,6 +13,10 @@ import java.io.File
 
 abstract class LinthPlugin : Plugin<Project> {
 
+	companion object {
+		private const val DEBUG_KEYSTORE_SIGNATURE_MD5 = "87:73:90:5A:BB:B4:58:47:CB:E5:9E:53:D3:7A:71:19"
+	}
+
 	override fun apply(project: Project) {
 		val extension = project.extensions.create("linthPlugin", LinthPluginConfig::class.java, project)
 
@@ -186,19 +190,19 @@ abstract class LinthPlugin : Plugin<Project> {
 					UploadRequest(
 						apk = it.outputFile,
 						appIcon = File(getWebIconPath(buildDir, flavor)),
-						appName = "", //will be set from manifest
+						appName = "", // Will be set from manifest inside the task
 						packageName = packageName,
 						flavor = flavor,
 						branch = buildBranch,
 						minSdk = minSdk,
 						targetSdk = targetSdk,
-						usesFeature = emptyList(), // will be set from manifest TODO: Not yet implemented
+						usesFeature = emptyList(), // Will be set from manifest inside the task TODO: Not yet implemented
 						buildId = buildId,
 						buildNumber = buildNumber,
 						buildTime = buildTimestamp,
 						buildBatch = buildBatch,
-						changelog = "", //will be set inside uploadTask
-						signature = "someFancySignature", // TODO: Not yet implemented
+						changelog = "", // Will be set inside the task
+						signature = extension.signature.getOrElse(DEBUG_KEYSTORE_SIGNATURE_MD5),
 						version = versionName,
 					)
 				}

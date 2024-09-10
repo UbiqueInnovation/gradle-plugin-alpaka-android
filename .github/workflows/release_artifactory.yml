@@ -21,4 +21,4 @@ jobs:
 
       # Run the Gradle publish task
       - name: Build and publish artifact
-        run: ./gradlew clean artifactoryPublish -PubiqueMavenRootUrl=${{secrets.UB_ARTIFACTORY_URL}} -PubiqueMavenRepoName=${{secrets.UB_ARTIFACTORY_REPO_ANDROID}} -PubiqueMavenUser=${{secrets.UB_ARTIFACTORY_USER}} -PubiqueMavenPass=${{secrets.UB_ARTIFACTORY_PASSWORD}}
+        run: ./gradlew clean :plugin-build:artifactoryPublish -PubiqueMavenRootUrl=${{secrets.UB_ARTIFACTORY_URL}} -PubiqueMavenRepoName=${{secrets.UB_ARTIFACTORY_REPO_ANDROID}} -PubiqueMavenUser=${{secrets.UB_ARTIFACTORY_USER}} -PubiqueMavenPass=${{secrets.UB_ARTIFACTORY_PASSWORD}}

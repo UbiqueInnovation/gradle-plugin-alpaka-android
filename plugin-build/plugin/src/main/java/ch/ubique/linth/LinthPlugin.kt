@@ -74,11 +74,12 @@ abstract class LinthPlugin : Plugin<Project> {
 		// TODO Let Kotlin target JVM 17
 
 		// Signing Config
-		androidExtension.signingConfigs.register("ubique") { signingConfig ->
-			signingConfig.storeFile = project.getKeystoreFile()
-			signingConfig.storePassword = "android"
-			signingConfig.keyAlias = "androiddebugkey"
-			signingConfig.keyPassword = "android"
+		androidExtension.signingConfigs.maybeCreate("ubique")
+		androidExtension.signingConfigs.getByName("ubique").apply {
+			storeFile = project.getKeystoreFile()
+			storePassword = "android"
+			keyAlias = "androiddebugkey"
+			keyPassword = "android"
 		}
 		androidExtension.buildTypes.forEach { buildType ->
 			buildType.signingConfig = androidExtension.signingConfigs.getByName("ubique")

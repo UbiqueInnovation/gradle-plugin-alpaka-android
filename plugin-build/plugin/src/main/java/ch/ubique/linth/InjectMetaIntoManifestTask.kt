@@ -9,23 +9,20 @@ import java.io.File
 
 abstract class InjectMetaIntoManifestTask : DefaultTask() {
 
-	private val METADATA_KEY_BUILDID = "ch.ubique.linth.buildid"
-	private val METADATA_KEY_BUILDNUMBER = "ch.ubique.linth.buildnumber"
-	private val METADATA_KEY_BRANCH = "ch.ubique.linth.branch"
-	private val METADATA_KEY_FLAVOR = "ch.ubique.linth.flavor"
+	companion object {
+		const val METADATA_KEY_BUILDID = "ch.ubique.linth.buildid"
+		const val METADATA_KEY_BUILDNUMBER = "ch.ubique.linth.buildnumber"
+		const val METADATA_KEY_BUILDTIME = "ch.ubique.linth.buildtime"
+		const val METADATA_KEY_BUILDBATCH = "ch.ubique.linth.buildbatch"
+		const val METADATA_KEY_BRANCH = "ch.ubique.linth.branch"
+		const val METADATA_KEY_FLAVOR = "ch.ubique.linth.flavor"
+	}
 
-	private var buildId: String = "0"
-	private var buildNumber: String = "0"
-	private var buildBranch: String = "master"
 	private var buildFlavor: String = "default"
 
 	init {
 		description = "Inject Metadata into Manifest"
 		group = "linth"
-
-		buildId = project.findProperty("buildid")?.toString() ?: project.findProperty("ubappid")?.toString() ?: "localbuild"
-		buildNumber = project.findProperty("buildnumber")?.toString() ?: "0"
-		buildBranch = project.findProperty("branch")?.toString() ?: GitUtils.obtainBranch()
 	}
 
 	@get:Input
@@ -33,6 +30,21 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 
 	@get:Input
 	abstract var buildType: String
+
+	@get:Input
+	abstract var buildId: String
+
+	@get:Input
+	abstract var buildNumber: Long
+
+	@get:Input
+	abstract var buildBatch: String
+
+	@get:Input
+	abstract var buildTimestamp: Long
+
+	@get:Input
+	abstract var buildBranch: String
 
 	@TaskAction
 	fun injectMetadataIntoManifest() {
@@ -55,7 +67,9 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 
 		// inject meta-data tags into the manifest
 		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILDID, buildId)
-		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILDNUMBER, buildNumber)
+		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILDNUMBER, buildNumber.toString())
+		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILDTIME, buildTimestamp.toString())
+		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILDBATCH, buildBatch)
 		manifestContent = addMetaData(manifestContent, METADATA_KEY_BRANCH, buildBranch)
 		manifestContent = addMetaData(manifestContent, METADATA_KEY_FLAVOR, buildFlavor)
 

@@ -13,6 +13,7 @@ data class UploadRequest(
 	val minSdk: Int,
 	val targetSdk: Int,
 	val usesFeature: List<String>,
+	val buildId: String,
 	val buildNumber: Long,
 	val buildTime: Long,
 	val buildBatch: String,
@@ -22,20 +23,21 @@ data class UploadRequest(
 ) {
 
 	fun toUploadDataJson(uploadKey: String) = UploadDataJson(
+		uploadKey = uploadKey,
 		name = appName,
 		packageName = packageName,
 		flavor = flavor,
-		branch = branch,
+		version = version,
+		signature = signature,
 		minSdk = minSdk,
 		targetSdk = targetSdk,
 		usesFeature = usesFeature,
+		branch = branch,
+		changelog = changelog,
+		buildId = buildId,
 		buildNumber = buildNumber,
 		buildTime = buildTime,
 		buildBatch = buildBatch,
-		changelog = changelog,
-		signature = signature,
-		version = version,
-		uploadKey = uploadKey,
 	)
 
 }

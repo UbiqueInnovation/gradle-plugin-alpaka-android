@@ -4,22 +4,11 @@ import java.io.File
 
 object StringUtils {
 
-	private fun getLabelName(manifestFile: File): String? {
-		if (manifestFile.isDirectory || manifestFile.exists().not()) {
-			return null
-		}
-
-		val xmlParser = XmlParser(manifestFile)
-		val fileName = xmlParser.findAttribute("application", "android:label")
-
-		return fileName?.split("/")?.get(1)
-	}
-
 	/**
-	 * Finds all icon files matching the icon specified in the given manifest.
+	 * Finds the app name from specified in the manifest.
 	 */
 	fun findAppName(resDirs: List<File>, manifest: File): String? {
-		val labelName = getLabelName(manifest) ?: return null
+		val labelName = findAttribute(manifest, "application", "android:label")?.substringAfter("/") ?: return null
 
 		val stringFiles = mutableListOf<File>()
 		for (resDir in resDirs) {
@@ -41,6 +30,24 @@ object StringUtils {
 		}
 
 		return null
+	}
+
+	fun findMetadataValue(manifest: File, name: String): String? {
+		if (manifest.isDirectory || manifest.exists().not()) {
+			return null
+		}
+
+		val xmlParser = XmlParser(manifest)
+		return xmlParser.findAttributeValue("meta-data", "android:value", mapOf("android:name" to name))
+	}
+
+	private fun findAttribute(manifest: File, tag: String, attribute: String): String? {
+		if (manifest.isDirectory || manifest.exists().not()) {
+			return null
+		}
+
+		val xmlParser = XmlParser(manifest)
+		return  xmlParser.findAttribute(tag, attribute)
 	}
 
 }

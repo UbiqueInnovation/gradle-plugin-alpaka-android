@@ -16,14 +16,12 @@ import org.gradle.api.tasks.options.Option
 
 abstract class UploadToLinthBackend : DefaultTask() {
 
-	private var buildBranch: String = "master"
 	private var commitHistory: String = "no commit history"
 
 	init {
 		description = "Uploads Apk to Linth Backend"
 		group = "linth"
 
-		buildBranch = project.findProperty("branch")?.toString() ?: GitUtils.obtainBranch()
 		commitHistory = GitUtils.obtainLastCommits()
 	}
 
@@ -56,8 +54,6 @@ abstract class UploadToLinthBackend : DefaultTask() {
 		}
 
 		val uploadRequest = updateUploadRequestWithManifestInformation().copy(
-			//add git infos
-			branch = buildBranch,
 			changelog = commitHistory,
 		)
 
@@ -75,7 +71,7 @@ abstract class UploadToLinthBackend : DefaultTask() {
 		val appName = StringUtils.findAppName(resDirs, manifestFile) ?: error("Did not find appName in Strings.")
 
 		return uploadRequest.copy(
-			appName = appName
+			appName = appName,
 		)
 	}
 

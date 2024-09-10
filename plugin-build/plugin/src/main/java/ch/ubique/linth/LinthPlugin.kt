@@ -1,18 +1,101 @@
 package ch.ubique.linth
 
+import ch.ubique.linth.common.GitUtils
 import ch.ubique.linth.common.capitalize
 import ch.ubique.linth.model.UploadRequest
+import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.internal.tasks.factory.dependsOn
+import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import java.io.File
 
 abstract class LinthPlugin : Plugin<Project> {
 
 	override fun apply(project: Project) {
 		val extension = project.extensions.create("linthPlugin", LinthPluginConfig::class.java, project)
 
+		val buildId = project.findProperty("build_id")?.toString() ?: project.findProperty("ubappid")?.toString() ?: "localbuild"
+		val buildNumber = project.findProperty("build_number")?.toString()?.toLongOrNull() ?: 0L
+		val buildBatch = project.findProperty("build_batch")?.toString() ?: "0"
+		val buildTimestamp = project.findProperty("build_timestamp")?.toString()?.toLongOrNull() ?: System.currentTimeMillis()
+		val buildBranch = project.findProperty("branch")?.toString() ?: GitUtils.obtainBranch()
+
 		val androidExtension = getAndroidExtension(project)
+		val androidComponentExtension = getAndroidComponentsExtension(project)
+
+		// Enable BuildConfig
+		androidExtension.buildFeatures.buildConfig = true
+
+		// Set BuildConfig fields
+		androidExtension.defaultConfig.apply {
+			buildConfigField("String", "BUILD_ID", "\"$buildId\"")
+			buildConfigField("long", "BUILD_NUMBER", "${buildNumber}L")
+			buildConfigField("String", "BUILD_BATCH", "\"$buildBatch\"")
+			buildConfigField("long", "BUILD_TIMESTAMP", "${buildTimestamp}L")
+			buildConfigField("String", "BRANCH", "\"$buildBranch\"")
+		}
+
+		// Add flavor boolean fields to BuildConfig
+		androidExtension.productFlavors.forEach { flavor ->
+			val sanitizedFlavorName = flavor.name.replace("[^a-zA-Z0-9_]", "_").uppercase()
+			val flavorFieldName = "IS_FLAVOR_$sanitizedFlavorName"
+
+			// true for this flavor ...
+			flavor.buildConfigField("boolean", flavorFieldName, "true")
+			// ... false for all others
+			androidExtension.defaultConfig.buildConfigField("boolean", flavorFieldName, "false")
+		}
+
+		// TODO Default flavors
+
+		// TODO Release build config
+
+		// TODO R8 full mode check
+
+		// Exclude library version files on release builds
+		androidComponentExtension.onVariants { variant ->
+			if (variant.buildType == "release") {
+				variant.packaging.resources.excludes.add("META-INF/*.version")
+			}
+		}
+
+		// Compile with Java 17 compatibility
+		androidExtension.compileOptions.apply {
+			sourceCompatibility = JavaVersion.VERSION_17
+			targetCompatibility = JavaVersion.VERSION_17
+		}
+
+		// TODO Let Kotlin target JVM 17
+
+		// Signing Config
+		androidExtension.signingConfigs.register("ubique") { signingConfig ->
+			signingConfig.storeFile = project.getKeystoreFile()
+			signingConfig.storePassword = "android"
+			signingConfig.keyAlias = "androiddebugkey"
+			signingConfig.keyPassword = "android"
+		}
+		androidExtension.buildTypes.forEach { buildType ->
+			buildType.signingConfig = androidExtension.signingConfigs.getByName("ubique")
+		}
+
+		// Lint settings
+		androidExtension.lintOptions.isAbortOnError = false
+
+		// Keystore generation
+		project.afterEvaluate {
+			androidExtension.applicationVariants.configureEach { variant ->
+				val generateKeystoreTask = project.tasks.register(
+					"generateKeyStore${variant.name.capitalize()}"
+				) { task ->
+					task.doLast { project.generateKeystoreFile() }
+				}
+				variant.assembleProvider.configure { assembleTask ->
+					assembleTask.dependsOn.add(generateKeystoreTask)
+				}
+			}
+		}
 
 		//hook injectMetaTask into android build process
 		project.afterEvaluate {
@@ -27,6 +110,11 @@ abstract class LinthPlugin : Plugin<Project> {
 				) { manifestTask ->
 					manifestTask.flavor = flavor
 					manifestTask.buildType = buildType
+					manifestTask.buildId = buildId
+					manifestTask.buildNumber = buildNumber
+					manifestTask.buildBatch = buildBatch
+					manifestTask.buildTimestamp = buildTimestamp
+					manifestTask.buildBranch = buildBranch
 				}
 
 				variant.outputs.forEach { output ->
@@ -38,7 +126,7 @@ abstract class LinthPlugin : Plugin<Project> {
 		//hook iconTask into android build process
 		project.afterEvaluate {
 
-			val buildDir = project.layout.buildDirectory.asFile.get()
+			val buildDir = project.getBuildDirectory()
 
 			//make sure generated sources are used by build process
 			androidExtension.productFlavors.configureEach { flavor ->
@@ -62,7 +150,10 @@ abstract class LinthPlugin : Plugin<Project> {
 				val iconTask = project.tasks.register("generateAppIcon$flavorBuild", IconTask::class.java) { iconTask ->
 					iconTask.flavor = flavor
 					iconTask.buildType = buildType
-					iconTask.targetWebIcon = null
+					iconTask.targetWebIcon = File(getWebIconPath(buildDir, flavor)).also {
+						it.parentFile.mkdirs()
+						it.createNewFile()
+					}
 				}
 
 				variant.outputs.forEach { output ->
@@ -78,10 +169,12 @@ abstract class LinthPlugin : Plugin<Project> {
 		//hook uploadTask into android build process
 		project.afterEvaluate {
 
+			val buildDir = project.getBuildDirectory()
+
 			androidExtension.applicationVariants.forEach { variant ->
-				val flavor = variant.flavorName.capitalize()
+				val flavor = variant.flavorName
 				val buildType = variant.buildType.name.capitalize()
-				val flavorBuild = flavor + buildType
+				val flavorBuild = flavor.capitalize() + buildType
 				if (buildType != "Release") return@forEach
 
 				val packageName = variant.applicationId
@@ -92,19 +185,20 @@ abstract class LinthPlugin : Plugin<Project> {
 				val uploadRequest = variant.outputs.first().let {
 					UploadRequest(
 						apk = it.outputFile,
-						appIcon = it.outputFile,
+						appIcon = File(getWebIconPath(buildDir, flavor)),
 						appName = "", //will be set from manifest
 						packageName = packageName,
 						flavor = flavor,
-						branch = "", //will be set inside uploadTask
+						branch = buildBranch,
 						minSdk = minSdk,
 						targetSdk = targetSdk,
-						usesFeature = emptyList(), //will be set from manifest
-						buildNumber = 0L,
-						buildTime = 0L,
-						buildBatch = "buildBatch",
+						usesFeature = emptyList(), // will be set from manifest TODO: Not yet implemented
+						buildId = buildId,
+						buildNumber = buildNumber,
+						buildTime = buildTimestamp,
+						buildBatch = buildBatch,
 						changelog = "", //will be set inside uploadTask
-						signature = "someFancySignature",
+						signature = "someFancySignature", // TODO: Not yet implemented
 						version = versionName,
 					)
 				}
@@ -126,5 +220,37 @@ abstract class LinthPlugin : Plugin<Project> {
 			"Android gradle plugin extension has not been applied before"
 		)
 		return ext
+	}
+
+	private fun getAndroidComponentsExtension(project: Project): AndroidComponentsExtension<*, *, *> {
+		val ext = project.extensions.findByType(AndroidComponentsExtension::class.java) ?: error(
+			"Android gradle plugin extension has not been applied before"
+		)
+		return ext
+	}
+
+	private fun Project.getKeystoreFile(): File {
+		return this.file("${getBuildDirectory()}/generated/ubique/debug.keystore")
+	}
+
+	private fun Project.generateKeystoreFile() {
+		val keystoreFile = getKeystoreFile()
+		if (keystoreFile.length() > 4) return
+		keystoreFile.parentFile.mkdirs()
+		val resourceStream = this@LinthPlugin.javaClass.getResourceAsStream("/debug.keystore")
+		if (resourceStream != null) {
+			resourceStream.use { resource -> keystoreFile.outputStream().use { output -> resource.copyTo(output) } }
+			println("generated debug.keystore (${keystoreFile.length()}B)")
+		} else {
+			error("Could not generate keystore")
+		}
+	}
+
+	private fun Project.getBuildDirectory(): File {
+		return project.layout.buildDirectory.asFile.get()
+	}
+
+	private fun getWebIconPath(buildDir: File, flavor: String): String {
+		return "$buildDir/generated/res/launcher-icon/${flavor.lowercase()}/web-icon.png"
 	}
 }

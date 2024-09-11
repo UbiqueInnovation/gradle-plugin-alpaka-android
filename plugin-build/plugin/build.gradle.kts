@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -12,6 +13,7 @@ dependencies {
 	implementation(gradleApi())
 
 	implementation(libs.agp)
+	implementation(libs.kotlin.gradle)
 
 	implementation(libs.coroutines)
 	implementation(libs.okhttp)
@@ -30,9 +32,8 @@ java {
 }
 
 tasks.withType<KotlinCompile> {
-	kotlinOptions {
-		jvmTarget = JavaVersion.VERSION_17.toString()
-	}
+	compilerOptions.jvmTarget = JvmTarget.JVM_17
+	kotlinOptions.jvmTarget = JavaVersion.VERSION_17.toString()
 }
 
 gradlePlugin {

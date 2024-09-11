@@ -17,33 +17,6 @@ android {
 
 		testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
 	}
-
-	buildTypes {
-		release {
-			isMinifyEnabled = false
-			proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-		}
-	}
-
-	flavorDimensions += "version"
-	productFlavors {
-		create("dev") {
-			applicationIdSuffix = ".dev"
-			versionNameSuffix = "-dev"
-		}
-		create("prod") {
-			applicationIdSuffix = ".prod"
-			versionNameSuffix = "-prod"
-		}
-	}
-
-	compileOptions {
-		sourceCompatibility = JavaVersion.VERSION_17
-		targetCompatibility = JavaVersion.VERSION_17
-	}
-	kotlinOptions {
-		jvmTarget = JavaVersion.VERSION_17.toString()
-	}
 }
 
 dependencies {

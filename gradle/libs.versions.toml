@@ -36,5 +36,6 @@ appcompatV7 = { group = "com.android.support", name = "appcompat-v7", version.re
 constraintLayout = { group = "com.android.support.constraint", name = "constraint-layout", version.ref = "constraintLayout" }
 livedata = { group = "android.arch.lifecycle", name = "livedata", version.ref = "livedata" }
 viewmodel = { group = "android.arch.lifecycle", name = "viewmodel", version.ref = "viewmodel" }
+kotlin-gradle = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin"}
 
 

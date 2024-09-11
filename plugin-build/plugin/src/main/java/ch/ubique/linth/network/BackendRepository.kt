@@ -53,7 +53,7 @@ class BackendRepository {
 
 		val response = service.appsUpload(
 			apk = uploadRequest.apk.toPartMap("apk", "application/octet-stream"),
-			icon = uploadRequest.apk.toPartMap("icon", "image/png"),
+			icon = uploadRequest.appIcon.toPartMap("icon", "image/png"),
 			data = data
 		)
 		if (response.isSuccessful.not()) throw HttpException(response)

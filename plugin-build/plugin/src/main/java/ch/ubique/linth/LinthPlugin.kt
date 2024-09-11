@@ -5,10 +5,14 @@ import ch.ubique.linth.common.capitalize
 import ch.ubique.linth.model.UploadRequest
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.gradle.AppExtension
+import com.android.build.gradle.ProguardFiles.getDefaultProguardFile
 import com.android.build.gradle.internal.tasks.factory.dependsOn
+import com.android.build.gradle.internal.utils.configureKotlinCompileTasks
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.File
 
 abstract class LinthPlugin : Plugin<Project> {
@@ -28,6 +32,16 @@ abstract class LinthPlugin : Plugin<Project> {
 
 		val androidExtension = getAndroidExtension(project)
 		val androidComponentExtension = getAndroidComponentsExtension(project)
+
+		// Default flavors
+		androidExtension.flavorDimensions("default")
+		androidExtension.productFlavors.create("dev") {
+			it.dimension = "default"
+			it.applicationIdSuffix = ".dev"
+		}
+		androidExtension.productFlavors.create("prod") {
+			it.dimension = "default"
+		}
 
 		// Enable BuildConfig
 		androidExtension.buildFeatures.buildConfig = true
@@ -52,11 +66,16 @@ abstract class LinthPlugin : Plugin<Project> {
 			androidExtension.defaultConfig.buildConfigField("boolean", flavorFieldName, "false")
 		}
 
-		// TODO Default flavors
+		// Release build config
+		androidExtension.buildTypes.maybeCreate("release").apply {
+			isMinifyEnabled = true
+			proguardFiles(getDefaultProguardFile("proguard-android.txt", project.layout.buildDirectory), "proguard-rules.pro")
+		}
 
-		// TODO Release build config
-
-		// TODO R8 full mode check
+		// R8 full mode check
+		if (project.findProperty("android.enableR8.fullMode") != "false" && project.findProperty("android.enableR8.fullModeAllowed") != "true") {
+			throw IllegalArgumentException("R8 full mode is enabled. Disable it with android.enableR8.fullMode=false or allow it by setting android.enableR8.fullModeAllowed=true")
+		}
 
 		// Exclude library version files on release builds
 		androidComponentExtension.onVariants { variant ->
@@ -71,15 +90,19 @@ abstract class LinthPlugin : Plugin<Project> {
 			targetCompatibility = JavaVersion.VERSION_17
 		}
 
-		// TODO Let Kotlin target JVM 17
+		// Let Kotlin target JVM 17
+		project.tasks.withType(KotlinCompile::class.java) { task ->
+			task.compilerOptions.jvmTarget.set(JvmTarget.JVM_17) // Kotlin 1.8+
+			@Suppress("DEPRECATION")
+			task.kotlinOptions.jvmTarget = "17" // Deprecated since Kotlin 1.8
+		}
 
 		// Signing Config
-		androidExtension.signingConfigs.maybeCreate("ubique")
-		androidExtension.signingConfigs.getByName("ubique").apply {
-			storeFile = project.getKeystoreFile()
-			storePassword = "android"
-			keyAlias = "androiddebugkey"
-			keyPassword = "android"
+		androidExtension.signingConfigs.register("ubique") { signingConfig ->
+			signingConfig.storeFile = project.getKeystoreFile()
+			***REMOVED***
+			***REMOVED***
+			***REMOVED***
 		}
 		androidExtension.buildTypes.forEach { buildType ->
 			buildType.signingConfig = androidExtension.signingConfigs.getByName("ubique")

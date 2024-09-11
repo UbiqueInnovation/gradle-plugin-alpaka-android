@@ -47,9 +47,6 @@ gradlePlugin {
 			tags = listOf("android", "linth")
 		}
 	}
-}
-
-gradlePlugin {
 	website.set(property("WEBSITE").toString())
 	vcsUrl.set(property("VCS_URL").toString())
 }

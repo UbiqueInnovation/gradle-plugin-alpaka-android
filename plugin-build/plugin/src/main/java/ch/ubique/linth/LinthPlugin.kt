@@ -7,7 +7,6 @@ import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.ProguardFiles.getDefaultProguardFile
 import com.android.build.gradle.internal.tasks.factory.dependsOn
-import com.android.build.gradle.internal.utils.configureKotlinCompileTasks
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -35,11 +34,11 @@ abstract class LinthPlugin : Plugin<Project> {
 
 		// Default flavors
 		androidExtension.flavorDimensions("default")
-		androidExtension.productFlavors.create("dev") {
+		androidExtension.productFlavors.register("dev") {
 			it.dimension = "default"
 			it.applicationIdSuffix = ".dev"
 		}
-		androidExtension.productFlavors.create("prod") {
+		androidExtension.productFlavors.register("prod") {
 			it.dimension = "default"
 		}
 

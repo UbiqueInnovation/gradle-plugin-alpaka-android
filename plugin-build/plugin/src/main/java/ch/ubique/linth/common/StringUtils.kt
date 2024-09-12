@@ -1,5 +1,6 @@
 package ch.ubique.linth.common
 
+import org.gradle.api.logging.Logger
 import java.io.File
 
 object StringUtils {
@@ -7,26 +8,36 @@ object StringUtils {
 	/**
 	 * Finds the app name from specified in the manifest.
 	 */
-	fun findAppName(resDirs: List<File>, manifest: File): String? {
+	fun findAppName(logger: Logger, resDirs: List<File>, manifest: File): String? {
 		val labelName = findAttribute(manifest, "application", "android:label")?.substringAfter("/") ?: return null
 
-		val stringFiles = mutableListOf<File>()
-		for (resDir in resDirs) {
-			if (resDir.exists()) {
-				resDir.walkTopDown().maxDepth(1)
-					.filter { it.isDirectory && (it.name.startsWith("values")) }
-					.forEach { dir ->
-						dir.walkTopDown().filter { it.isFile && it.name.matches(Regex(".*strings.*.xml")) }
-							.forEach { stringFiles.add(it) }
-					}
+		val stringFiles = resDirs.filter { it.exists() }
+			.flatMap { resDir ->
+				resDir.walkTopDown()
+					.maxDepth(1)
+					.filter { it.isDirectory && it.name.startsWith("values") }
+					.mapNotNull { dir ->
+						dir.walkTopDown()
+							.filter { it.isFile && it.name.matches(".*strings.*\\.xml".toRegex()) }
+							.toList()
+							.takeIf { it.isNotEmpty() }
+					}.flatten()
 			}
+
+		if (stringFiles.isEmpty()) {
+			logger.warn("No string files found in res directories")
+			return null
 		}
-		if (stringFiles.isEmpty()) return null
+
+		logger.debug("Looking for app name in string files: ${stringFiles.joinToString { it.absolutePath }}")
 
 		stringFiles.forEach {
 			val xmlParser = XmlParser(it)
 			val appName = xmlParser.findAttribute("string", "name", labelName, findTextValue = true)
-			if (appName != null) return appName
+			if (appName != null) {
+				logger.debug("Found app name: $appName")
+				return appName
+			}
 		}
 
 		return null

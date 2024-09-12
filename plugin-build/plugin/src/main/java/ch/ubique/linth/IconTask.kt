@@ -19,6 +19,9 @@ abstract class IconTask : DefaultTask() {
 	}
 
 	@get:Input
+	abstract var variantName: String
+
+	@get:Input
 	abstract var flavor: String
 
 	@get:Input
@@ -51,7 +54,7 @@ abstract class IconTask : DefaultTask() {
 			null
 		}
 
-		val manifestFile = project.getMergedManifestFile(flavor, buildType)
+		val manifestFile = project.getMergedManifestFile(variantName)
 		val resDirs = project.getResDirs(flavor)
 
 		val allIcons = IconUtils.findIcons(resDirs, manifestFile)

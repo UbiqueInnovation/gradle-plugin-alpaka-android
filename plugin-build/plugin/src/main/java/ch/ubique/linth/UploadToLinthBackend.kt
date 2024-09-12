@@ -27,6 +27,15 @@ abstract class UploadToLinthBackend : DefaultTask() {
 	}
 
 	@get:Input
+	abstract var variantName: String
+
+	@get:Input
+	abstract var flavor: String
+
+	@get:Input
+	abstract var buildType: String
+
+	@get:Input
 	@get:Option(option = "uploadKey", description = "A proxy in format url:port")
 	abstract var uploadKey: String
 
@@ -37,12 +46,6 @@ abstract class UploadToLinthBackend : DefaultTask() {
 
 	@get:Input
 	abstract var uploadRequest: UploadRequest
-
-	@get:Input
-	abstract var flavor: String
-
-	@get:Input
-	abstract var buildType: String
 
 	@TaskAction
 	fun uploadAction() {
@@ -71,7 +74,7 @@ abstract class UploadToLinthBackend : DefaultTask() {
 	}
 
 	private fun updateUploadRequestWithManifestInformation(): UploadRequest {
-		val manifestFile = project.getMergedManifestFile(flavor, buildType)
+		val manifestFile = project.getMergedManifestFile(variantName)
 		val resDirs = project.getResDirs(flavor)
 
 		val appName = StringUtils.findAppName(logger, resDirs, manifestFile)

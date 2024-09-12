@@ -136,15 +136,16 @@ abstract class LinthPlugin : Plugin<Project> {
 
 		//hook injectMetaTask into android build process
 		project.afterEvaluate {
-			androidExtension.applicationVariants.forEach { variant ->
-				val flavor = variant.flavorName.capitalize()
-				val buildType = variant.buildType.name.capitalize()
-				val flavorBuild = flavor + buildType
+			androidExtension.applicationVariants.configureEach { variant ->
+				val variantName = variant.name
+				val flavor = variant.flavorName
+				val buildType = variant.buildType.name
 
 				val injectMetaTask = project.tasks.register(
-					"injectMetaDataIntoManifest$flavorBuild",
+					"injectMetaDataIntoManifest${variantName.capitalize()}",
 					InjectMetaIntoManifestTask::class.java
 				) { manifestTask ->
+					manifestTask.variantName = variantName
 					manifestTask.flavor = flavor
 					manifestTask.buildType = buildType
 					manifestTask.buildId = buildId
@@ -177,13 +178,16 @@ abstract class LinthPlugin : Plugin<Project> {
 				}
 			}
 
-			androidExtension.applicationVariants.forEach { variant ->
-				val variantName = variant.name.capitalize()
-				val flavor = variant.flavorName.capitalize()
-				val buildType = variant.buildType.name.capitalize()
-				val flavorBuild = flavor + buildType
+			androidExtension.applicationVariants.configureEach { variant ->
+				val variantName = variant.name
+				val flavor = variant.flavorName
+				val buildType = variant.buildType.name
 
-				val iconTask = project.tasks.register("generateAppIcon$flavorBuild", IconTask::class.java) { iconTask ->
+				val iconTask = project.tasks.register(
+					"generateAppIcon${variantName.capitalize()}",
+					IconTask::class.java
+				) { iconTask ->
+					iconTask.variantName = variantName
 					iconTask.flavor = flavor
 					iconTask.buildType = buildType
 					iconTask.targetWebIcon = File(getWebIconPath(buildDir, flavor)).also {
@@ -194,7 +198,7 @@ abstract class LinthPlugin : Plugin<Project> {
 
 				variant.outputs.forEach { output ->
 					iconTask.dependsOn(output.processManifestProvider)
-					project.tasks.named("generate${variantName}Resources") {
+					project.tasks.named("generate${variantName.capitalize()}Resources") {
 						it.dependsOn(iconTask)
 					}
 				}
@@ -205,11 +209,11 @@ abstract class LinthPlugin : Plugin<Project> {
 		project.afterEvaluate {
 			val buildDir = project.getBuildDirectory()
 
-			androidExtension.applicationVariants.forEach { variant ->
+			androidExtension.applicationVariants.configureEach { variant ->
+				val variantName = variant.name
 				val flavor = variant.flavorName
-				val buildType = variant.buildType.name.capitalize()
-				val flavorBuild = flavor.capitalize() + buildType
-				if (buildType != "Release") return@forEach
+				val buildType = variant.buildType.name
+				if (buildType != "release") return@configureEach
 
 				val packageName = variant.applicationId
 				val minSdk = requireNotNull(androidExtension.defaultConfig.minSdk)
@@ -237,8 +241,9 @@ abstract class LinthPlugin : Plugin<Project> {
 					)
 				}
 
-				project.tasks.register("uploadToLinth$flavorBuild", UploadToLinthBackend::class.java) { uploadTask ->
-					uploadTask.dependsOn("assemble$flavorBuild")
+				project.tasks.register("uploadToLinth${variantName.capitalize()}", UploadToLinthBackend::class.java) { uploadTask ->
+					uploadTask.dependsOn("assemble${variantName.capitalize()}")
+					uploadTask.variantName = variantName
 					uploadTask.flavor = flavor
 					uploadTask.buildType = buildType
 					uploadTask.uploadKey = extension.uploadKey.get()

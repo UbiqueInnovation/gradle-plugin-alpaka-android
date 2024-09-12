@@ -9,11 +9,10 @@ import java.io.File
 /**
  * returns File with merged manifest
  */
-fun Project.getMergedManifestFile(flavor: String, buildType: String): File {
-	val variantName = flavor + buildType
+fun Project.getMergedManifestFile(variantName: String): File {
 	return File(
 		layout.buildDirectory.asFile.get(),
-		"intermediates/merged_manifests/${variantName}/process${variantName}Manifest/AndroidManifest.xml"
+		"intermediates/merged_manifests/${variantName}/process${variantName.capitalize()}Manifest/AndroidManifest.xml"
 	)
 }
 
@@ -31,7 +30,7 @@ fun Project.getResDirs(flavor: String): List<File> {
 	val resDirs: List<File> = androidModules
 		.flatMap {
 			listOfNotNull(
-				it.sourceSets.findByName(flavor.lowercase()),
+				it.sourceSets.findByName(flavor),
 				it.sourceSets.findByName("main")
 			)
 		}

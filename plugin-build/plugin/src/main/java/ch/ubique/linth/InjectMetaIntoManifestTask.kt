@@ -26,6 +26,9 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 	}
 
 	@get:Input
+	abstract var variantName: String
+
+	@get:Input
 	abstract var flavor: String
 
 	@get:Input
@@ -48,11 +51,16 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 
 	@TaskAction
 	fun injectMetadataIntoManifest() {
-		val manifestFile = project.getMergedManifestFile(flavor, buildType)
+		val manifestFile = project.getMergedManifestFile(variantName)
 		if (manifestFile.exists()) {
 			manipulateManifestFile(manifestFile)
 		} else {
-			throw GradleException("Manifest file not found for flavor: $flavor and buildType: $buildType")
+			throw GradleException(
+				"""
+				Manifest file not found for $variantName
+				Tried location: ${manifestFile.absolutePath}
+				""".trimIndent()
+			)
 		}
 	}
 

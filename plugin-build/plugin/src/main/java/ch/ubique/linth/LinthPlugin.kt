@@ -23,10 +23,19 @@ abstract class LinthPlugin : Plugin<Project> {
 	override fun apply(project: Project) {
 		val extension = project.extensions.create("linthPlugin", LinthPluginConfig::class.java, project)
 
+		// The build ID is a unique UUID for each build
 		val buildId = project.findProperty("build_id")?.toString() ?: project.findProperty("ubappid")?.toString() ?: "localbuild"
+
+		// The build number is the run number of a build pipeline (e.g. GitHub workflow run number)
 		val buildNumber = project.findProperty("build_number")?.toString()?.toLongOrNull() ?: 0L
+
+		// The build batch is a unique UUID across all builds of a certain batch (e.g. all flavors of a commit)
 		val buildBatch = project.findProperty("build_batch")?.toString() ?: "0"
+
+		// The build timestamp is the timestamp when the build was started
 		val buildTimestamp = project.findProperty("build_timestamp")?.toString()?.toLongOrNull() ?: System.currentTimeMillis()
+
+		// The build branch is the Git name of the branch
 		val buildBranch = project.findProperty("branch")?.toString() ?: GitUtils.obtainBranch()
 
 		val androidExtension = getAndroidExtension(project)
@@ -189,7 +198,6 @@ abstract class LinthPlugin : Plugin<Project> {
 						it.dependsOn(iconTask)
 					}
 				}
-
 			}
 		}
 
@@ -231,6 +239,7 @@ abstract class LinthPlugin : Plugin<Project> {
 				}
 
 				project.tasks.register("uploadToLinth$flavorBuild", UploadToLinthBackend::class.java) { uploadTask ->
+					uploadTask.dependsOn("assemble$flavorBuild")
 					uploadTask.flavor = flavor
 					uploadTask.buildType = buildType
 					uploadTask.uploadKey = extension.uploadKey.get()

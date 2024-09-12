@@ -37,7 +37,7 @@ abstract class LinthPlugin : Plugin<Project> {
 		val buildTimestamp = project.findProperty("build_timestamp")?.toString()?.toLongOrNull() ?: System.currentTimeMillis()
 
 		// The build branch is the Git name of the branch
-		val buildBranch = project.findProperty("branch")?.toString() ?: GitUtils.obtainBranch()
+		val buildBranch = project.findProperty("branch")?.toString() ?: GitUtils.obtainBranch(project)
 
 		val androidExtension = getAndroidExtension(project)
 		val androidComponentExtension = getAndroidComponentsExtension(project)

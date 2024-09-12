@@ -23,7 +23,7 @@ abstract class UploadToLinthBackend : DefaultTask() {
 		description = "Uploads Apk to Linth Backend"
 		group = "linth"
 
-		commitHistory = GitUtils.obtainLastCommits()
+		commitHistory = GitUtils.obtainLastCommits(project)
 	}
 
 	@get:Input

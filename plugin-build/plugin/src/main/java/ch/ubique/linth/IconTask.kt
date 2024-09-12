@@ -68,20 +68,19 @@ abstract class IconTask : DefaultTask() {
 				?: IconUtils.findLargestIcon(allIcons)  // Fallback if not found
 
 			if (webIconSource == null) {
-				println("$name: web icon source not found")
+				logger.warn("Web icon source not found")
 			} else if (bannerLabel.isNullOrEmpty()) {
-				// No label, so we only copy the sourceIcon
-				println("$name: web icon: $webIconSource")
+				logger.info("No banner label, copy source icon")
 				webIconSource.copyTo(targetWebIcon, overwrite = true)
 			} else {
-				println("$name: web icon: $webIconSource")
+				logger.info("Apply banner label to web icon: ${webIconSource.absolutePath}")
 				IconUtils.drawLabel(webIconSource, targetWebIcon, bannerLabel, adaptive = false)
 			}
 		}
 
 		if (bannerLabel.isNullOrEmpty()) {
 			// No label
-			println("$name: skipped icon labelling")
+			logger.info("No banner label, skipping icon labelling")
 			return
 		}
 
@@ -100,7 +99,6 @@ abstract class IconTask : DefaultTask() {
 			) {
 				return@iconsForEach
 			} else {
-				println("bannerlabel is $bannerLabel")
 				val target = File(targetDir, original.name)
 				targetDir.mkdirs()
 				original.copyTo(target, overwrite = true)

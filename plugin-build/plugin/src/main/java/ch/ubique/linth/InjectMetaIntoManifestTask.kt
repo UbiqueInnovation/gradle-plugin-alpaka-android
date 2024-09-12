@@ -1,8 +1,8 @@
 package ch.ubique.linth
 
-import ch.ubique.linth.common.GitUtils
 import ch.ubique.linth.common.getMergedManifestFile
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
 import java.io.File
@@ -10,10 +10,10 @@ import java.io.File
 abstract class InjectMetaIntoManifestTask : DefaultTask() {
 
 	companion object {
-		const val METADATA_KEY_BUILDID = "ch.ubique.linth.buildid"
-		const val METADATA_KEY_BUILDNUMBER = "ch.ubique.linth.buildnumber"
-		const val METADATA_KEY_BUILDTIME = "ch.ubique.linth.buildtime"
-		const val METADATA_KEY_BUILDBATCH = "ch.ubique.linth.buildbatch"
+		const val METADATA_KEY_BUILD_BATCH = "ch.ubique.linth.build.batch"
+		const val METADATA_KEY_BUILD_ID = "ch.ubique.linth.build.id"
+		const val METADATA_KEY_BUILD_NUMBER = "ch.ubique.linth.build.number"
+		const val METADATA_KEY_BUILD_TIMESTAMP = "ch.ubique.linth.build.timestamp"
 		const val METADATA_KEY_BRANCH = "ch.ubique.linth.branch"
 		const val METADATA_KEY_FLAVOR = "ch.ubique.linth.flavor"
 	}
@@ -52,7 +52,7 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 		if (manifestFile.exists()) {
 			manipulateManifestFile(manifestFile)
 		} else {
-			println("Manifest file not found for flavor: $flavor and buildType: $buildType")
+			throw GradleException("Manifest file not found for flavor: $flavor and buildType: $buildType")
 		}
 	}
 
@@ -66,10 +66,10 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 		var manifestContent = manifestFile.readText(Charsets.UTF_8)
 
 		// inject meta-data tags into the manifest
-		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILDID, buildId)
-		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILDNUMBER, buildNumber.toString())
-		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILDTIME, buildTimestamp.toString())
-		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILDBATCH, buildBatch)
+		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILD_BATCH, buildBatch)
+		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILD_ID, buildId)
+		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILD_NUMBER, buildNumber.toString())
+		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILD_TIMESTAMP, buildTimestamp.toString())
 		manifestContent = addMetaData(manifestContent, METADATA_KEY_BRANCH, buildBranch)
 		manifestContent = addMetaData(manifestContent, METADATA_KEY_FLAVOR, buildFlavor)
 

@@ -9,6 +9,7 @@ import ch.ubique.linth.network.BackendRepository
 import ch.ubique.linth.network.OkHttpInstance
 import kotlinx.coroutines.runBlocking
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
@@ -58,9 +59,14 @@ abstract class UploadToLinthBackend : DefaultTask() {
 		)
 
 		runBlocking {
-			val backendRepository = BackendRepository()
-			backendRepository.appsUpload(uploadRequest = uploadRequest, uploadKey = uploadKey)
-			logger.lifecycle("Upload to UbDiag successful.")
+			logger.lifecycle("Starting upload to UBDiag")
+			try {
+				val backendRepository = BackendRepository()
+				backendRepository.appsUpload(uploadRequest = uploadRequest, uploadKey = uploadKey)
+				logger.lifecycle("Upload to UBDiag successful.")
+			} catch (e: Exception) {
+				throw GradleException("Upload to UBDiag failed: ${e.message}", e)
+			}
 		}
 	}
 
@@ -68,7 +74,14 @@ abstract class UploadToLinthBackend : DefaultTask() {
 		val manifestFile = project.getMergedManifestFile(flavor, buildType)
 		val resDirs = project.getResDirs(flavor)
 
-		val appName = StringUtils.findAppName(resDirs, manifestFile) ?: error("Did not find appName in Strings.")
+		val appName = StringUtils.findAppName(logger, resDirs, manifestFile)
+			?: throw GradleException(
+				"""
+				Failed to find app name in string resources.
+				Manifest location: ${manifestFile.absolutePath}
+				Resource directories: ${resDirs.joinToString { it.absolutePath }}
+				""".trimIndent()
+			)
 
 		return uploadRequest.copy(
 			appName = appName,

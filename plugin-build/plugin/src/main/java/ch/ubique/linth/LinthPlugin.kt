@@ -7,6 +7,7 @@ import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.ProguardFiles.getDefaultProguardFile
 import com.android.build.gradle.internal.tasks.factory.dependsOn
+import org.gradle.api.GradleException
 import org.gradle.api.JavaVersion
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -161,7 +162,6 @@ abstract class LinthPlugin : Plugin<Project> {
 
 		//hook iconTask into android build process
 		project.afterEvaluate {
-
 			val buildDir = project.getBuildDirectory()
 
 			//make sure generated sources are used by build process
@@ -203,7 +203,6 @@ abstract class LinthPlugin : Plugin<Project> {
 
 		//hook uploadTask into android build process
 		project.afterEvaluate {
-
 			val buildDir = project.getBuildDirectory()
 
 			androidExtension.applicationVariants.forEach { variant ->
@@ -248,20 +247,17 @@ abstract class LinthPlugin : Plugin<Project> {
 				}
 			}
 		}
-
 	}
 
 	private fun getAndroidExtension(project: Project): AppExtension {
-		val ext = project.extensions.findByType(AppExtension::class.java) ?: error(
-			"Android gradle plugin extension has not been applied before"
-		)
+		val ext = project.extensions.findByType(AppExtension::class.java)
+			?: throw GradleException("Android gradle plugin extension has not been applied before")
 		return ext
 	}
 
 	private fun getAndroidComponentsExtension(project: Project): AndroidComponentsExtension<*, *, *> {
-		val ext = project.extensions.findByType(AndroidComponentsExtension::class.java) ?: error(
-			"Android gradle plugin extension has not been applied before"
-		)
+		val ext = project.extensions.findByType(AndroidComponentsExtension::class.java)
+			?: throw GradleException("Android gradle plugin extension has not been applied before")
 		return ext
 	}
 
@@ -276,9 +272,9 @@ abstract class LinthPlugin : Plugin<Project> {
 		val resourceStream = this@LinthPlugin.javaClass.getResourceAsStream("/debug.keystore")
 		if (resourceStream != null) {
 			resourceStream.use { resource -> keystoreFile.outputStream().use { output -> resource.copyTo(output) } }
-			println("generated debug.keystore (${keystoreFile.length()}B)")
+			logger.info("Generated debug.keystore (${keystoreFile.length()}B)")
 		} else {
-			error("Could not generate keystore")
+			throw GradleException("Failed to find debug.keystore in resources")
 		}
 	}
 

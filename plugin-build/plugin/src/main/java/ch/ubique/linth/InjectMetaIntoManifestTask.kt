@@ -18,8 +18,6 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 		const val METADATA_KEY_FLAVOR = "ch.ubique.linth.flavor"
 	}
 
-	private var buildFlavor: String = "default"
-
 	init {
 		description = "Inject Metadata into Manifest"
 		group = "linth"
@@ -79,7 +77,7 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILD_NUMBER, buildNumber.toString())
 		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILD_TIMESTAMP, buildTimestamp.toString())
 		manifestContent = addMetaData(manifestContent, METADATA_KEY_BRANCH, buildBranch)
-		manifestContent = addMetaData(manifestContent, METADATA_KEY_FLAVOR, buildFlavor)
+		manifestContent = addMetaData(manifestContent, METADATA_KEY_FLAVOR, flavor)
 
 		// store modified manifest
 		manifestFile.writeText(manifestContent, Charsets.UTF_8)

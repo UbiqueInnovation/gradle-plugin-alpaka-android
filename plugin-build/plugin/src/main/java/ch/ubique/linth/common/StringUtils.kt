@@ -36,7 +36,7 @@ object StringUtils {
 			val appName = xmlParser.findAttribute("string", "name", labelName, findTextValue = true)
 			if (appName != null) {
 				logger.debug("Found app name: $appName")
-				return appName
+				return appName.trim('"')
 			}
 		}
 

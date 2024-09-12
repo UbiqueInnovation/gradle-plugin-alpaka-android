@@ -48,7 +48,7 @@ abstract class IconTask : DefaultTask() {
 		val defaultLabelEnabled = false//android.defaultConfig.launcherIconLabelEnabled
 		val flavorLabelEnabled = true//flavor.launcherIconLabelEnabled
 
-		val bannerLabel = if (flavorLabelEnabled) {
+		val bannerLabel = if (flavorLabelEnabled && !flavor.startsWith("prod")) {
 			flavor
 		} else {
 			null

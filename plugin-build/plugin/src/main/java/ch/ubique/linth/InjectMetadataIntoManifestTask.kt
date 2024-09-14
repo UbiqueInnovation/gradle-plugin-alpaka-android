@@ -5,9 +5,11 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.TaskAction
+import org.gradle.work.DisableCachingByDefault
 import java.io.File
 
-abstract class InjectMetaIntoManifestTask : DefaultTask() {
+@DisableCachingByDefault
+abstract class InjectMetadataIntoManifestTask : DefaultTask() {
 
 	companion object {
 		const val METADATA_KEY_BUILD_BATCH = "ch.ubique.linth.build.batch"
@@ -72,12 +74,12 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 		var manifestContent = manifestFile.readText(Charsets.UTF_8)
 
 		// inject meta-data tags into the manifest
-		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILD_BATCH, buildBatch)
-		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILD_ID, buildId)
-		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILD_NUMBER, buildNumber.toString())
-		manifestContent = addMetaData(manifestContent, METADATA_KEY_BUILD_TIMESTAMP, buildTimestamp.toString())
-		manifestContent = addMetaData(manifestContent, METADATA_KEY_BRANCH, buildBranch)
-		manifestContent = addMetaData(manifestContent, METADATA_KEY_FLAVOR, flavor)
+		manifestContent = addMetadata(manifestContent, METADATA_KEY_BUILD_BATCH, buildBatch)
+		manifestContent = addMetadata(manifestContent, METADATA_KEY_BUILD_ID, buildId)
+		manifestContent = addMetadata(manifestContent, METADATA_KEY_BUILD_NUMBER, buildNumber.toString())
+		manifestContent = addMetadata(manifestContent, METADATA_KEY_BUILD_TIMESTAMP, buildTimestamp.toString())
+		manifestContent = addMetadata(manifestContent, METADATA_KEY_BRANCH, buildBranch)
+		manifestContent = addMetadata(manifestContent, METADATA_KEY_FLAVOR, flavor)
 
 		// store modified manifest
 		manifestFile.writeText(manifestContent, Charsets.UTF_8)
@@ -90,7 +92,7 @@ abstract class InjectMetaIntoManifestTask : DefaultTask() {
 	 * @param metaValue meta-data value
 	 * @return
 	 */
-	private fun addMetaData(manifest: String, metaName: String, metaValue: String): String {
+	private fun addMetadata(manifest: String, metaName: String, metaValue: String): String {
 		val xmlAppClosingTag = "</application>"
 		val metaTag = "<meta-data android:name=\"$metaName\" android:value=\"$metaValue\" />"
 		return manifest.replace(xmlAppClosingTag, "    $metaTag\n    $xmlAppClosingTag")

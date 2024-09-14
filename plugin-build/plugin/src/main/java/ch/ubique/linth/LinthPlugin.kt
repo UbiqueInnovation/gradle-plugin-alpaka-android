@@ -2,6 +2,7 @@ package ch.ubique.linth
 
 import ch.ubique.linth.common.GitUtils
 import ch.ubique.linth.common.capitalize
+import ch.ubique.linth.common.getMergedManifestFile
 import ch.ubique.linth.model.UploadRequest
 import com.android.build.api.variant.AndroidComponentsExtension
 import com.android.build.gradle.AppExtension
@@ -127,10 +128,11 @@ abstract class LinthPlugin : Plugin<Project> {
 					"generateKeyStore${variant.name.capitalize()}"
 				) { task ->
 					task.doLast { project.generateKeystoreFile() }
+					task.outputs.cacheIf { true }
+					task.outputs.file(project.getKeystoreFile()) // Define the keystore file as an output to make the task cacheable
 				}
-				variant.assembleProvider.configure { assembleTask ->
-					assembleTask.dependsOn.add(generateKeystoreTask)
-				}
+				variant.assembleProvider.configure { it.dependsOn.add(generateKeystoreTask) }
+				variant.packageApplicationProvider.configure { it.dependsOn.add(generateKeystoreTask) }
 			}
 		}
 
@@ -141,10 +143,11 @@ abstract class LinthPlugin : Plugin<Project> {
 				val flavor = variant.flavorName
 				val buildType = variant.buildType.name
 
-				val injectMetaTask = project.tasks.register(
-					"injectMetaDataIntoManifest${variantName.capitalize()}",
-					InjectMetaIntoManifestTask::class.java
+				val injectManifestTask = project.tasks.register(
+					"injectMetadataIntoManifest${variantName.capitalize()}",
+					InjectMetadataIntoManifestTask::class.java
 				) { manifestTask ->
+					manifestTask.outputs.file(project.getMergedManifestFile(variantName))
 					manifestTask.variantName = variantName
 					manifestTask.flavor = flavor
 					manifestTask.buildType = buildType
@@ -155,8 +158,9 @@ abstract class LinthPlugin : Plugin<Project> {
 					manifestTask.buildBranch = buildBranch
 				}
 
+				project.tasks.named("process${variantName.capitalize()}ManifestForPackage") { it.dependsOn(injectManifestTask) }
 				variant.outputs.forEach { output ->
-					output.processManifestProvider.get().finalizedBy(injectMetaTask)
+					output.processManifestProvider.get().finalizedBy(injectManifestTask)
 				}
 			}
 		}
@@ -190,17 +194,13 @@ abstract class LinthPlugin : Plugin<Project> {
 					iconTask.variantName = variantName
 					iconTask.flavor = flavor
 					iconTask.buildType = buildType
-					iconTask.targetWebIcon = File(getWebIconPath(buildDir, flavor)).also {
-						it.parentFile.mkdirs()
-						it.createNewFile()
-					}
+					iconTask.targetWebIconPath = getWebIconPath(buildDir, flavor)
 				}
 
+				project.tasks.named("map${variantName.capitalize()}SourceSetPaths") { it.dependsOn(iconTask) }
+				project.tasks.named("generate${variantName.capitalize()}Resources") { it.dependsOn(iconTask) }
 				variant.outputs.forEach { output ->
 					iconTask.dependsOn(output.processManifestProvider)
-					project.tasks.named("generate${variantName.capitalize()}Resources") {
-						it.dependsOn(iconTask)
-					}
 				}
 			}
 		}

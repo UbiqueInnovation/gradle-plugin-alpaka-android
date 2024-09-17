@@ -43,6 +43,15 @@ object StringUtils {
 		return null
 	}
 
+	fun findRequiredFeatures(manifest: File): List<String> {
+		if (manifest.isDirectory || manifest.exists().not()) {
+			return emptyList()
+		}
+
+		val xmlParser = XmlParser(manifest)
+		return xmlParser.findAttributeValues("uses-feature", "android:name", mapOf("android:required" to "true"))
+	}
+
 	fun findMetadataValue(manifest: File, name: String): String? {
 		if (manifest.isDirectory || manifest.exists().not()) {
 			return null

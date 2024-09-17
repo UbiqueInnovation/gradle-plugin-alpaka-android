@@ -230,7 +230,7 @@ abstract class LinthPlugin : Plugin<Project> {
 						branch = buildBranch,
 						minSdk = minSdk,
 						targetSdk = targetSdk,
-						usesFeature = emptyList(), // Will be set from manifest inside the task TODO: Not yet implemented
+						usesFeature = emptyList(), // Will be set from manifest inside the task
 						buildId = buildId,
 						buildNumber = buildNumber,
 						buildTime = buildTimestamp,

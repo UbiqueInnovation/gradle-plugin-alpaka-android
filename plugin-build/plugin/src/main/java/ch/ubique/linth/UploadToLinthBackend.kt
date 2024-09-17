@@ -88,8 +88,11 @@ abstract class UploadToLinthBackend : DefaultTask() {
 				""".trimIndent()
 			)
 
+		val usesFeatures = StringUtils.findRequiredFeatures(manifestFile)
+
 		return uploadRequest.copy(
 			appName = appName,
+			usesFeature = usesFeatures,
 		)
 	}
 

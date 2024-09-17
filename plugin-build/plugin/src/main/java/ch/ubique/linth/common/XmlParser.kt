@@ -62,11 +62,23 @@ class XmlParser(
 	 * @param attributeFilter A map of attributes that must match on the tag
 	 */
 	fun findAttributeValue(tag: String, attributeName: String, attributeFilter: Map<String, String> = emptyMap()): String? {
-		return root.findAttributeValue(tag, attributeName, attributeFilter)
+		return root.findAttributeValues(tag, attributeName, attributeFilter).singleOrNull()
 	}
 
-	private fun Element.findAttributeValue(tag: String, attributeName: String, attributeFilter: Map<String, String>): String? {
+	/**
+	 * Finds all values of [attributeName] for a [tag], where the tag also matches the optional [attributeFilter].
+	 *
+	 * @param tag The tag to which the attribute belongs
+	 * @param attributeName The name of the attribute to find
+	 * @param attributeFilter A map of attributes that must match on the tag
+	 */
+	fun findAttributeValues(tag: String, attributeName: String, attributeFilter: Map<String, String> = emptyMap()): List<String> {
+		return root.findAttributeValues(tag, attributeName, attributeFilter)
+	}
+
+	private fun Element.findAttributeValues(tag: String, attributeName: String, attributeFilter: Map<String, String>): List<String> {
 		val nodeList = this.childNodes
+		val values = mutableListOf<String>()
 		for (i in 0 until nodeList.length) {
 			val node = nodeList.item(i)
 
@@ -90,17 +102,15 @@ class XmlParser(
 					}
 
 					if (matchesAttributeFilter && attributeValue != null) {
-						return attributeValue
+						values.add(attributeValue)
 					}
 				} else {
-					val value = element.findAttributeValue(tag, attributeName, attributeFilter)
-					if (value != null) {
-						return value
-					}
+					val nestedValues = element.findAttributeValues(tag, attributeName, attributeFilter)
+					values.addAll(nestedValues)
 				}
 			}
 		}
-		return null
+		return values
 	}
 
 	private fun parseXml(file: File): Document {

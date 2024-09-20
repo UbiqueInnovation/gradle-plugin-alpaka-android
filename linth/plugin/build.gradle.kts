@@ -44,7 +44,7 @@ gradlePlugin {
 			version = property("VERSION").toString()
 			description = property("DESCRIPTION").toString()
 			displayName = property("DISPLAY_NAME").toString()
-			tags = listOf("android", "linth")
+			tags = listOf("android", "ubique")
 		}
 	}
 	website.set(property("WEBSITE").toString())
@@ -71,7 +71,7 @@ publishing {
     publications {
 		register<MavenPublication>("mavenJava") {
 			from(components.getByName("java"))
-			artifactId = property("ID").toString()
+			artifactId = property("ARTIFACT_ID").toString()
 			groupId = property("GROUP").toString()
 			version = property("VERSION").toString()
 		}

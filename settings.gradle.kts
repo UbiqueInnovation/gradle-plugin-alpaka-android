@@ -17,4 +17,4 @@ dependencyResolutionManagement {
 }
 
 include(":appexample")
-includeBuild("plugin-build")
+includeBuild("linth")

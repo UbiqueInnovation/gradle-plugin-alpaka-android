@@ -12,8 +12,8 @@ tasks.register("preMerge") {
     description = "Runs all the tests/verification tasks on both top level and included build."
 
     dependsOn(":appexample:check")
-    dependsOn(gradle.includedBuild("plugin-build").task(":plugin:check"))
-    dependsOn(gradle.includedBuild("plugin-build").task(":plugin:validatePlugins"))
+    dependsOn(gradle.includedBuild("linth").task(":plugin:check"))
+    dependsOn(gradle.includedBuild("linth").task(":plugin:validatePlugins"))
 }
 
 tasks.wrapper {

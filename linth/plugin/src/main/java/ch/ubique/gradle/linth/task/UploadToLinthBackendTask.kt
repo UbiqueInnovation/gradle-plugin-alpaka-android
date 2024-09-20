@@ -6,7 +6,9 @@ import ch.ubique.gradle.linth.model.UploadRequest
 import ch.ubique.gradle.linth.network.BackendRepository
 import ch.ubique.gradle.linth.network.OkHttpInstance
 import ch.ubique.gradle.linth.utils.GitUtils
+import ch.ubique.gradle.linth.utils.SigningConfigUtils
 import ch.ubique.gradle.linth.utils.StringUtils
+import com.android.build.gradle.api.ApplicationVariant
 import kotlinx.coroutines.runBlocking
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -25,7 +27,7 @@ abstract class UploadToLinthBackendTask : DefaultTask() {
 	}
 
 	@get:Input
-	abstract var variantName: String
+	abstract var variant: ApplicationVariant
 
 	@get:Input
 	abstract var flavor: String
@@ -61,9 +63,13 @@ abstract class UploadToLinthBackendTask : DefaultTask() {
 		}
 
 		val commitHistory = GitUtils.obtainLastCommits(project, numOfCommits = commitCount ?: 10)
+		val signature = variant.signingConfig?.let {
+			SigningConfigUtils(project.logger).getSignature(it) ?: "invalid"
+		} ?: "unsigned"
 
 		val uploadRequest = updateUploadRequestWithManifestInformation().copy(
 			changelog = commitHistory,
+			signature = signature,
 		)
 
 		runBlocking {
@@ -79,7 +85,7 @@ abstract class UploadToLinthBackendTask : DefaultTask() {
 	}
 
 	private fun updateUploadRequestWithManifestInformation(): UploadRequest {
-		val manifestFile = project.getMergedManifestFile(variantName)
+		val manifestFile = project.getMergedManifestFile(variant.name)
 		val resDirs = project.getResDirs(flavor)
 
 		val appName = StringUtils.findAppName(logger, resDirs, manifestFile)

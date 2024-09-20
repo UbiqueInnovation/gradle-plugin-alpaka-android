@@ -8,7 +8,6 @@ import ch.ubique.gradle.linth.task.IconTask
 import ch.ubique.gradle.linth.task.InjectMetadataIntoManifestTask
 import ch.ubique.gradle.linth.task.UploadToLinthBackendTask
 import ch.ubique.gradle.linth.utils.GitUtils
-import ch.ubique.gradle.linth.utils.SigningConfigUtils
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.GradleException
@@ -133,10 +132,6 @@ abstract class LinthPlugin : Plugin<Project> {
 				val targetSdk = requireNotNull(androidExtension.defaultConfig.targetSdk)
 				val versionName = requireNotNull(androidExtension.defaultConfig.versionName)
 
-				val signature = variant.signingConfig?.let {
-					SigningConfigUtils(project.logger).getSignature(it) ?: "invalid"
-				} ?: "unsigned"
-
 				val uploadRequest = variant.outputs.first().let {
 					UploadRequest(
 						apk = it.outputFile,
@@ -153,14 +148,14 @@ abstract class LinthPlugin : Plugin<Project> {
 						buildTime = buildTimestamp,
 						buildBatch = buildBatch,
 						changelog = "", // Will be set inside the task
-						signature = signature,
+						signature = "", // Will be set inside the task
 						version = versionName,
 					)
 				}
 
 				project.tasks.register("uploadToLinth${variantName.capitalize()}", UploadToLinthBackendTask::class.java) { uploadTask ->
 					uploadTask.dependsOn("assemble${variantName.capitalize()}")
-					uploadTask.variantName = variantName
+					uploadTask.variant = variant
 					uploadTask.flavor = flavor
 					uploadTask.buildType = buildType
 					uploadTask.uploadKey = pluginExtension.uploadKey.get()

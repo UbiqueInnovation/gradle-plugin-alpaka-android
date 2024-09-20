@@ -8,6 +8,7 @@ import ch.ubique.gradle.linth.task.IconTask
 import ch.ubique.gradle.linth.task.InjectMetadataIntoManifestTask
 import ch.ubique.gradle.linth.task.UploadToLinthBackendTask
 import ch.ubique.gradle.linth.utils.GitUtils
+import ch.ubique.gradle.linth.utils.SigningConfigUtils
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.GradleException
@@ -16,10 +17,6 @@ import org.gradle.api.Project
 import java.io.File
 
 abstract class LinthPlugin : Plugin<Project> {
-
-	companion object {
-		private const val DEBUG_KEYSTORE_SIGNATURE_MD5 = "87:73:90:5A:BB:B4:58:47:CB:E5:9E:53:D3:7A:71:19"
-	}
 
 	override fun apply(project: Project) {
 		val pluginExtension = project.extensions.create("linthPlugin", LinthPluginConfig::class.java, project)
@@ -136,6 +133,10 @@ abstract class LinthPlugin : Plugin<Project> {
 				val targetSdk = requireNotNull(androidExtension.defaultConfig.targetSdk)
 				val versionName = requireNotNull(androidExtension.defaultConfig.versionName)
 
+				val signature = variant.signingConfig?.let {
+					SigningConfigUtils(project.logger).getSignature(it) ?: "invalid"
+				} ?: "unsigned"
+
 				val uploadRequest = variant.outputs.first().let {
 					UploadRequest(
 						apk = it.outputFile,
@@ -152,7 +153,7 @@ abstract class LinthPlugin : Plugin<Project> {
 						buildTime = buildTimestamp,
 						buildBatch = buildBatch,
 						changelog = "", // Will be set inside the task
-						signature = pluginExtension.signature.getOrElse(DEBUG_KEYSTORE_SIGNATURE_MD5),
+						signature = signature,
 						version = versionName,
 					)
 				}

@@ -20,7 +20,6 @@ After applying the plugin to your project, you can set the following configurati
 ```kotlin
 linthPlugin {
 	uploadKey = "..." // The upload key identifying an application in the Linth backend (required)
-	signature = "..." // The signature used to sign the apk (optional, falls back to default keystore signature)
 	changelogCommitCount = 10 // The number of commits to include in the changelog (optional, defaults to 10)
 	proxy = "host:port" // An optional proxy to set for the upload task. Use for local debugging only
 }

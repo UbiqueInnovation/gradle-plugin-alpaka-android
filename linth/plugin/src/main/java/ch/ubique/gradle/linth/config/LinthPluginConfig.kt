@@ -12,8 +12,6 @@ constructor(project: Project) {
 
 	val uploadKey: Property<String> = objects.property(String::class.java)
 
-	val signature: Property<String> = objects.property(String::class.java)
-
 	val changelogCommitCount: Property<Int> = objects.property(Int::class.java)
 
 	val proxy: Property<String> = objects.property(String::class.java)

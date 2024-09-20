@@ -1,7 +1,10 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
 	alias(libs.plugins.androidApplication)
 	alias(libs.plugins.kotlinAndroid)
-	id("ch.ubique.linth")
+	id("ch.ubique.gradle.linth")
 }
 
 android {
@@ -17,6 +20,28 @@ android {
 
 		testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
 	}
+
+	flavorDimensions.add("default")
+	productFlavors {
+		create("dev") {
+			dimension = "default"
+			applicationIdSuffix = ".dev"
+		}
+		create("prod") {
+			dimension = "default"
+		}
+	}
+
+	compileOptions {
+		sourceCompatibility = JavaVersion.VERSION_17
+		targetCompatibility = JavaVersion.VERSION_17
+	}
+}
+
+tasks.withType(KotlinCompile::class.java) {
+	compilerOptions.jvmTarget = JvmTarget.JVM_17
+	@Suppress("DEPRECATION")
+	kotlinOptions.jvmTarget = JavaVersion.VERSION_17.toString()
 }
 
 dependencies {
@@ -27,5 +52,5 @@ dependencies {
 }
 
 linthPlugin {
-	uploadKey = "f1c8846e-0c3a-44ac-b56a-53feb91d6383"
+	uploadKey = "linth-example-upload-key"
 }

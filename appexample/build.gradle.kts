@@ -1,4 +1,6 @@
+
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -26,6 +28,9 @@ android {
 		create("dev") {
 			dimension = "default"
 			applicationIdSuffix = ".dev"
+
+			extraProperties.set("launcherIconLabel", "blub")
+			extraProperties.set("uploadKey", "linth-example-flavor-dev-upload-key")
 		}
 		create("prod") {
 			dimension = "default"
@@ -53,4 +58,6 @@ dependencies {
 
 linthPlugin {
 	uploadKey = "linth-example-upload-key"
+	labelAppIcons = true
+	changelogCommitCount = 5
 }

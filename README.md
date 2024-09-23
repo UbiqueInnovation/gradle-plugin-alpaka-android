@@ -21,7 +21,17 @@ After applying the plugin to your project, you can set the following configurati
 linthPlugin {
 	uploadKey = "..." // The upload key identifying an application in the Linth backend (required)
 	changelogCommitCount = 10 // The number of commits to include in the changelog (optional, defaults to 10)
-	proxy = "host:port" // An optional proxy to set for the upload task. Use for local debugging only
+	proxy = "host:port" // An optional proxy to set for the upload task. Use for local debugging only 
+    labelAppIcons = false // Globally configure the generateAppIcon tasks to label with flavor name (optional, default is enabled)
+}
+
+android { 
+	productFlavors {
+	    create("dev") {
+          extraProperties.set("launcherIconLabel", "tescht") // Modify the default icon label per flavor (optional, nullable)
+          extraProperties.set("uploadKey", "...") // Modify the default uploadKey per flavor (optional)
+	    }
+    }
 }
 ```
 

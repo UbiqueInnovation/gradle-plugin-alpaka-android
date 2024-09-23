@@ -15,4 +15,6 @@ constructor(project: Project) {
 	val changelogCommitCount: Property<Int> = objects.property(Int::class.java)
 
 	val proxy: Property<String> = objects.property(String::class.java)
+
+	val labelAppIcons: Property<Boolean> = objects.property(Boolean::class.java)
 }

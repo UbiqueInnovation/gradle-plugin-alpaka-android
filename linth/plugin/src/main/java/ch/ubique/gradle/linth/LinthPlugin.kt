@@ -3,6 +3,8 @@ package ch.ubique.gradle.linth
 import ch.ubique.gradle.linth.config.LinthPluginConfig
 import ch.ubique.gradle.linth.extensions.capitalize
 import ch.ubique.gradle.linth.extensions.getMergedManifestFile
+import ch.ubique.gradle.linth.extensions.getProperty
+import ch.ubique.gradle.linth.extensions.setProperty
 import ch.ubique.gradle.linth.model.UploadRequest
 import ch.ubique.gradle.linth.task.IconTask
 import ch.ubique.gradle.linth.task.InjectMetadataIntoManifestTask
@@ -80,17 +82,21 @@ abstract class LinthPlugin : Plugin<Project> {
 		// Hook iconTask into android build process
 		project.afterEvaluate {
 			val buildDir = project.getBuildDirectory()
+			val labelAppIcons = pluginExtension.labelAppIcons.getOrElse(true)
 
-			//make sure generated sources are used by build process
-			androidExtension.productFlavors.configureEach { flavor ->
-				// Add the property 'launcherIconLabel' to each product flavor and set the default value to its name
-				//flavor.set("launcherIconLabel", flavor.name)
-				//flavor.ext.set("launcherIconLabelEnabled", (Boolean) null)
+			androidExtension.buildTypes.forEach { buildType ->
+				androidExtension.productFlavors.configureEach { flavor ->
+					val flavorName = flavor.name
 
-				// Add generated icon path to res-SourceSet. This must be here otherwise it is too late!
-				val sourceSet = androidExtension.sourceSets.maybeCreate(flavor.name)
-				sourceSet.res {
-					srcDir("$buildDir/generated/res/launcher-icon/${flavor.name}/")
+					// Add the property 'launcherIconLabel' to each flavor and set the default value to its name
+					flavor.setProperty("launcherIconLabel", if (flavorName == "prod") null else flavorName)
+
+					if (labelAppIcons) {
+						// make sure generated sources are used by build process
+						// Add generated icon path to res-SourceSet. This must be here otherwise it is too late!
+						val sourceSet = androidExtension.sourceSets.maybeCreate("$flavorName${buildType.name.capitalize()}")
+						sourceSet.res.srcDir("$buildDir/generated/res/launcher-icon/${flavorName}/")
+					}
 				}
 			}
 
@@ -98,6 +104,7 @@ abstract class LinthPlugin : Plugin<Project> {
 				val variantName = variant.name
 				val flavor = variant.flavorName
 				val buildType = variant.buildType.name
+				val labelValue = variant.productFlavors.first().getProperty<String?>("launcherIconLabel")
 
 				val iconTask = project.tasks.register(
 					"generateAppIcon${variantName.capitalize()}",
@@ -106,7 +113,10 @@ abstract class LinthPlugin : Plugin<Project> {
 					iconTask.variantName = variantName
 					iconTask.flavor = flavor
 					iconTask.buildType = buildType
+					iconTask.labelValue = if (labelAppIcons) labelValue else null
 					iconTask.targetWebIconPath = getWebIconPath(buildDir, flavor)
+
+					iconTask.outputs.upToDateWhen { false } //always run the task
 				}
 
 				project.tasks.named("map${variantName.capitalize()}SourceSetPaths") { it.dependsOn(iconTask) }
@@ -125,6 +135,7 @@ abstract class LinthPlugin : Plugin<Project> {
 				val variantName = variant.name
 				val flavor = variant.flavorName
 				val buildType = variant.buildType.name
+				val uploadKey = variant.productFlavors.first().getProperty<String?>("uploadKey")
 				if (buildType != "release") return@configureEach
 
 				val packageName = variant.applicationId
@@ -153,12 +164,15 @@ abstract class LinthPlugin : Plugin<Project> {
 					)
 				}
 
-				project.tasks.register("uploadToLinth${variantName.capitalize()}", UploadToLinthBackendTask::class.java) { uploadTask ->
+				project.tasks.register(
+					"uploadToLinth${variantName.capitalize()}",
+					UploadToLinthBackendTask::class.java
+				) { uploadTask ->
 					uploadTask.dependsOn("assemble${variantName.capitalize()}")
 					uploadTask.variant = variant
 					uploadTask.flavor = flavor
 					uploadTask.buildType = buildType
-					uploadTask.uploadKey = pluginExtension.uploadKey.get()
+					uploadTask.uploadKey = uploadKey ?: pluginExtension.uploadKey.get()
 					uploadTask.proxy = pluginExtension.proxy.orNull
 					uploadTask.commitCount = pluginExtension.changelogCommitCount.orNull
 					uploadTask.uploadRequest = uploadRequest

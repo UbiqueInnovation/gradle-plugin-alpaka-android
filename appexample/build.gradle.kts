@@ -1,6 +1,7 @@
 
+import ch.ubique.gradle.linth.extensions.applicationviant.launcherIconLabel
+import ch.ubique.gradle.linth.extensions.applicationviant.uploadKey
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -29,8 +30,8 @@ android {
 			dimension = "default"
 			applicationIdSuffix = ".dev"
 
-			extraProperties.set("launcherIconLabel", "blub")
-			extraProperties.set("uploadKey", "linth-example-flavor-dev-upload-key")
+			uploadKey = "yeah neuer uploadkey"
+			launcherIconLabel = "yeah neues label"
 		}
 		create("prod") {
 			dimension = "default"

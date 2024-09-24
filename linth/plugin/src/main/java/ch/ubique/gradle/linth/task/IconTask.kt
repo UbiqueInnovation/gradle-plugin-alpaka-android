@@ -2,9 +2,10 @@ package ch.ubique.gradle.linth.task
 
 import ch.ubique.gradle.linth.extensions.getMergedManifestFile
 import ch.ubique.gradle.linth.extensions.getResDirs
-import ch.ubique.gradle.linth.extensions.olderThen
+import ch.ubique.gradle.linth.extensions.olderThan
 import ch.ubique.gradle.linth.utils.IconUtils
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.tasks.*
 import java.io.File
 
@@ -66,17 +67,17 @@ abstract class IconTask : DefaultTask() {
 						(File(moduleDir, "src/main").listFiles() ?: arrayOf()) +
 						(moduleDir.listFiles() ?: arrayOf())
 				).find { it.name.matches(Regex(".*(web|playstore|512)\\.(png|webp)")) }
-			?: error("Web icon source not found")
+			?: throw GradleException("Web icon source not found")
 
 		val bannerLabel = labelValue
 
 		if (bannerLabel.isNullOrEmpty()) {
-			if (webIconSource.olderThen(targetWebIcon, gradleLastModified)) {
+			if (webIconSource.olderThan(targetWebIcon, gradleLastModified)) {
 				logger.info("No banner label, copy source icon")
 				webIconSource.copyTo(targetWebIcon, overwrite = true)
 			}
 		} else {
-			if (webIconSource.olderThen(targetWebIcon, gradleLastModified)) {
+			if (webIconSource.olderThan(targetWebIcon, gradleLastModified)) {
 				logger.info("Apply banner label to web icon: ${webIconSource.absolutePath}")
 				IconUtils.drawLabel(webIconSource, targetWebIcon, bannerLabel, adaptive = false)
 			}
@@ -90,7 +91,7 @@ abstract class IconTask : DefaultTask() {
 					file.name.matches(Regex("$originalBaseName\\.[^.]+"))
 				}?.firstOrNull()
 
-				if (modified.olderThen(original, gradleLastModified)) {
+				if (modified.olderThan(original, gradleLastModified)) {
 					val target = File(targetDir, original.name)
 					targetDir.mkdirs()
 					original.copyTo(target, overwrite = true)

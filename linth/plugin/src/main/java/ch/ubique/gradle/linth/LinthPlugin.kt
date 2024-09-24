@@ -3,8 +3,8 @@ package ch.ubique.gradle.linth
 import ch.ubique.gradle.linth.config.LinthPluginConfig
 import ch.ubique.gradle.linth.extensions.capitalize
 import ch.ubique.gradle.linth.extensions.getMergedManifestFile
-import ch.ubique.gradle.linth.extensions.getProperty
-import ch.ubique.gradle.linth.extensions.setProperty
+import ch.ubique.gradle.linth.extensions.productflavor.launcherIconLabel
+import ch.ubique.gradle.linth.extensions.productflavor.uploadKey
 import ch.ubique.gradle.linth.model.UploadRequest
 import ch.ubique.gradle.linth.task.IconTask
 import ch.ubique.gradle.linth.task.InjectMetadataIntoManifestTask
@@ -84,12 +84,12 @@ abstract class LinthPlugin : Plugin<Project> {
 			val buildDir = project.getBuildDirectory()
 			val labelAppIcons = pluginExtension.labelAppIcons.getOrElse(true)
 
-			androidExtension.buildTypes.forEach { buildType ->
+			androidExtension.buildTypes.configureEach { buildType ->
 				androidExtension.productFlavors.configureEach { flavor ->
 					val flavorName = flavor.name
 
 					// Add the property 'launcherIconLabel' to each flavor and set the default value to its name
-					flavor.setProperty("launcherIconLabel", if (flavorName == "prod") null else flavorName)
+					flavor.launcherIconLabel = if (flavorName == "prod") null else flavorName
 
 					if (labelAppIcons) {
 						// make sure generated sources are used by build process
@@ -104,7 +104,7 @@ abstract class LinthPlugin : Plugin<Project> {
 				val variantName = variant.name
 				val flavor = variant.flavorName
 				val buildType = variant.buildType.name
-				val labelValue = variant.productFlavors.first().getProperty<String?>("launcherIconLabel")
+				val labelValue = variant.productFlavors.first().launcherIconLabel
 
 				val iconTask = project.tasks.register(
 					"generateAppIcon${variantName.capitalize()}",
@@ -135,7 +135,7 @@ abstract class LinthPlugin : Plugin<Project> {
 				val variantName = variant.name
 				val flavor = variant.flavorName
 				val buildType = variant.buildType.name
-				val uploadKey = variant.productFlavors.first().getProperty<String?>("uploadKey")
+				val uploadKey = variant.productFlavors.first().uploadKey
 				if (buildType != "release") return@configureEach
 
 				val packageName = variant.applicationId

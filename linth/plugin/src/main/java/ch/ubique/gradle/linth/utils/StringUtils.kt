@@ -15,10 +15,10 @@ object StringUtils {
 			.flatMap { resDir ->
 				resDir.walkTopDown()
 					.maxDepth(1)
-					.filter { it.isDirectory && it.name.startsWith("values") }
+					.filter { it.isDirectory && it.name.equals("values") }
 					.mapNotNull { dir ->
 						dir.walkTopDown()
-							.filter { it.isFile && it.name.matches(".*strings.*\\.xml".toRegex()) }
+							.filter { it.isFile && it.name.matches(".*\\.xml".toRegex()) }
 							.toList()
 							.takeIf { it.isNotEmpty() }
 					}.flatten()
@@ -33,10 +33,10 @@ object StringUtils {
 
 		stringFiles.forEach {
 			val xmlParser = XmlParser(it)
-			val appName = xmlParser.findAttribute("string", "name", labelName, findTextValue = true)
-			if (appName != null) {
+			val appName = xmlParser.findAttribute("string", "name", labelName, findTextValue = true)?.trim('"')
+			if (appName.isNullOrEmpty().not()) {
 				logger.debug("Found app name: $appName")
-				return appName.trim('"')
+				return appName
 			}
 		}
 

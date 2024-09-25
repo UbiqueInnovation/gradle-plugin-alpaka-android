@@ -27,5 +27,5 @@ internal var ProductFlavor.launcherIconLabel: String?
 	get() = getProperty("launcherIconLabel")
 	set(value) = setProperty("launcherIconLabel", value)
 
-internal val ProductFlavor.uploadKey: String?
-	get() = getProperty("uploadKey")
+internal val ProductFlavor.linthUploadKey: String?
+	get() = getProperty("linthUploadKey")

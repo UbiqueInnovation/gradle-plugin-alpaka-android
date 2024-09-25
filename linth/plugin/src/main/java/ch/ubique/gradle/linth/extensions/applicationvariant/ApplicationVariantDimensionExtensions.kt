@@ -1,4 +1,4 @@
-package ch.ubique.gradle.linth.extensions.applicationviant
+package ch.ubique.gradle.linth.extensions.applicationvariant
 
 import com.android.build.api.dsl.ApplicationVariantDimension
 import org.gradle.api.plugins.ExtensionAware
@@ -13,6 +13,6 @@ var ApplicationVariantDimension.launcherIconLabel: String?
 	get() = error("only setter")
 	set(value) = setProperty("launcherIconLabel", value)
 
-var ApplicationVariantDimension.uploadKey: String?
+var ApplicationVariantDimension.linthUploadKey: String?
 	get() = error("only setter")
-	set(value) = setProperty("uploadKey", value)
+	set(value) = setProperty("linthUploadKey", value)

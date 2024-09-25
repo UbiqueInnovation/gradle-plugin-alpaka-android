@@ -19,6 +19,7 @@ import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.options.Option
 import org.gradle.work.DisableCachingByDefault
+import retrofit2.HttpException
 
 @DisableCachingByDefault
 abstract class UploadToLinthBackendTask : DefaultTask() {
@@ -80,7 +81,14 @@ abstract class UploadToLinthBackendTask : DefaultTask() {
 				backendRepository.appsUpload(uploadRequest = uploadRequest, uploadKey = uploadKey)
 				logger.lifecycle("Upload to Linth successful.")
 			} catch (e: Exception) {
-				throw GradleException("Upload to Linth failed: ${e.message}", e)
+				val message = if (e is HttpException) {
+					e.response()?.run {
+						"${errorBody()?.string()} (status ${code()})"
+					}
+				} else {
+					null
+				} ?: e.message
+				throw GradleException("Upload to Linth failed: $message", e)
 			}
 		}
 	}

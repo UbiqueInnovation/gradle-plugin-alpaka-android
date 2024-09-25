@@ -1,8 +1,5 @@
-
-import ch.ubique.gradle.linth.extensions.applicationviant.launcherIconLabel
-import ch.ubique.gradle.linth.extensions.applicationviant.uploadKey
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import ch.ubique.gradle.linth.extensions.applicationvariant.launcherIconLabel
+import ch.ubique.gradle.linth.extensions.applicationvariant.linthUploadKey
 
 plugins {
 	alias(libs.plugins.androidApplication)
@@ -16,22 +13,22 @@ android {
 
 	defaultConfig {
 		applicationId = "com.example.appexample"
-		minSdk = 24
+		minSdk = 26
 		targetSdk = 34
 		versionCode = 1
-		versionName = "0.0.1"
+		versionName = "1.0"
 
-		testInstrumentationRunner = "android.support.test.runner.AndroidJUnitRunner"
+		linthUploadKey = "defaultConfig upload key"
 	}
 
-	flavorDimensions.add("default")
+	flavorDimensions += "default"
 	productFlavors {
 		create("dev") {
 			dimension = "default"
 			applicationIdSuffix = ".dev"
 
-			uploadKey = "yeah neuer uploadkey"
-			launcherIconLabel = "yeah neues label"
+			linthUploadKey = "dev flavor upload key"
+			launcherIconLabel = "develop"
 		}
 		create("prod") {
 			dimension = "default"
@@ -42,23 +39,20 @@ android {
 		sourceCompatibility = JavaVersion.VERSION_17
 		targetCompatibility = JavaVersion.VERSION_17
 	}
-}
-
-tasks.withType(KotlinCompile::class.java) {
-	compilerOptions.jvmTarget = JvmTarget.JVM_17
-	@Suppress("DEPRECATION")
-	kotlinOptions.jvmTarget = JavaVersion.VERSION_17.toString()
+	kotlinOptions {
+		jvmTarget = JavaVersion.VERSION_17.toString()
+	}
 }
 
 dependencies {
-	implementation(libs.appcompatV7)
-	implementation(libs.constraintLayout)
-	implementation(libs.livedata)
-	implementation(libs.viewmodel)
+	implementation(libs.core.ktx)
+	implementation(libs.appcompat)
+	implementation(libs.material)
+	implementation(libs.activity)
+	implementation(libs.activity)
 }
 
-linthPlugin {
-	uploadKey = "linth-example-upload-key"
+linth {
 	labelAppIcons = true
 	changelogCommitCount = 5
 }

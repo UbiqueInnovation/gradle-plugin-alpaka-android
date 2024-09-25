@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package ch.ubique.gradle.linth.task
 
 import ch.ubique.gradle.linth.extensions.getMergedManifestFile
@@ -36,7 +38,6 @@ abstract class UploadToLinthBackendTask : DefaultTask() {
 	abstract var buildType: String
 
 	@get:Input
-	@get:Option(option = "uploadKey", description = "The upload key for the Linth backend")
 	abstract var uploadKey: String
 
 	@get:Input
@@ -73,13 +74,13 @@ abstract class UploadToLinthBackendTask : DefaultTask() {
 		)
 
 		runBlocking {
-			logger.lifecycle("Starting upload to UBDiag")
+			logger.lifecycle("Starting upload to Linth.")
 			try {
 				val backendRepository = BackendRepository()
 				backendRepository.appsUpload(uploadRequest = uploadRequest, uploadKey = uploadKey)
-				logger.lifecycle("Upload to UBDiag successful.")
+				logger.lifecycle("Upload to Linth successful.")
 			} catch (e: Exception) {
-				throw GradleException("Upload to UBDiag failed: ${e.message}", e)
+				throw GradleException("Upload to Linth failed: ${e.message}", e)
 			}
 		}
 	}

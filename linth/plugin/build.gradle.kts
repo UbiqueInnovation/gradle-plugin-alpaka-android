@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -98,5 +100,14 @@ artifactory {
 			setPublishPom(true)
 			setPublishIvy(false)
 		}
+	}
+}
+
+// enable test logging with gradle
+project.tasks.withType(Test::class.java).configureEach {
+	testLogging {
+		exceptionFormat = TestExceptionFormat.FULL
+		events = setOf(TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED)
+		showStandardStreams = true
 	}
 }

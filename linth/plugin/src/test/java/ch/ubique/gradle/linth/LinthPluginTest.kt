@@ -1,16 +1,24 @@
 package ch.ubique.gradle.linth
 
 import org.junit.Test
+import java.io.File
 
 class LinthPluginTest {
 
-    @Test
-    fun `plugin is applied correctly to the project`() {
-        /*
-        val project = ProjectBuilder.builder().build()
-        project.pluginManager.apply("ch.ubique.gradle.linth")
+    private val appExample: File = File("")
 
-        assert(project.tasks.getByName("templateExample") is UploadToUbDiagTask)
+    @Test
+    fun `appexample upload task kotlin dsl`() {
+        /*
+        println(appExample.absolutePath)
+        val projectpath = appExample.absoluteFile.parentFile.parentFile
+        println(projectpath.absolutePath)
+
+        GradleRunner.create()
+            .withProjectDir(projectpath)
+            .withArguments("appexample:generateAppIconDevDebug", "-PubiqueMavenRootUrl=abc", "-PubiqueMavenRepoName=abc", "-PubiqueMavenUser=abc", "-PubiqueMavenPass=abc")
+            //.withPluginClasspath()
+            .build()
          */
     }
 

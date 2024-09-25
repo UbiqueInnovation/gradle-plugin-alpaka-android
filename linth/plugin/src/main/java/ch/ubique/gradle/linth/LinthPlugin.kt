@@ -1,24 +1,31 @@
+@file:Suppress("DEPRECATION")
+
 package ch.ubique.gradle.linth
 
 import ch.ubique.gradle.linth.config.LinthPluginConfig
 import ch.ubique.gradle.linth.extensions.capitalize
 import ch.ubique.gradle.linth.extensions.getMergedManifestFile
+import ch.ubique.gradle.linth.extensions.productflavor.launcherIconLabel
+import ch.ubique.gradle.linth.extensions.productflavor.linthUploadKey
 import ch.ubique.gradle.linth.model.UploadRequest
 import ch.ubique.gradle.linth.task.IconTask
 import ch.ubique.gradle.linth.task.InjectMetadataIntoManifestTask
 import ch.ubique.gradle.linth.task.UploadToLinthBackendTask
 import ch.ubique.gradle.linth.utils.GitUtils
 import com.android.build.gradle.AppExtension
+import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.plugins.ExtensionAware
+import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import java.io.File
 
 abstract class LinthPlugin : Plugin<Project> {
 
 	override fun apply(project: Project) {
-		val pluginExtension = project.extensions.create("linthPlugin", LinthPluginConfig::class.java, project)
+		val pluginExtension = project.extensions.create("linth", LinthPluginConfig::class.java, project)
 		val androidExtension = getAndroidExtension(project)
 
 		// The build ID is a unique UUID for each build
@@ -48,6 +55,16 @@ abstract class LinthPlugin : Plugin<Project> {
 			buildConfigField("String", "BRANCH", "\"$buildBranch\"")
 		}
 
+		//specify extra properties per flavor and defaultConfig for groovy dsl
+		(androidExtension.defaultConfig as ExtensionAware).apply {
+			extraProperties.set("launcherIconLabel", null)
+			extraProperties.set("linthUploadKey", null)
+		}
+		androidExtension.productFlavors.configureEach { flavor ->
+			flavor.extraProperties.set("launcherIconLabel", null)
+			flavor.extraProperties.set("linthUploadKey", null)
+		}
+
 		// Hook injectMetadataTask into android build process
 		project.afterEvaluate {
 			androidExtension.applicationVariants.configureEach { variant ->
@@ -70,9 +87,11 @@ abstract class LinthPlugin : Plugin<Project> {
 					manifestTask.buildBranch = buildBranch
 				}
 
-				project.tasks.named("process${variantName.capitalize()}ManifestForPackage") { it.dependsOn(injectManifestTask) }
 				variant.outputs.forEach { output ->
 					output.processManifestProvider.get().finalizedBy(injectManifestTask)
+				}
+				project.tasks.named("process${variantName.capitalize()}ManifestForPackage") {
+					it.dependsOn(injectManifestTask)
 				}
 			}
 		}
@@ -80,17 +99,21 @@ abstract class LinthPlugin : Plugin<Project> {
 		// Hook iconTask into android build process
 		project.afterEvaluate {
 			val buildDir = project.getBuildDirectory()
+			val labelAppIcons = pluginExtension.labelAppIcons.getOrElse(true)
 
-			//make sure generated sources are used by build process
-			androidExtension.productFlavors.configureEach { flavor ->
-				// Add the property 'launcherIconLabel' to each product flavor and set the default value to its name
-				//flavor.set("launcherIconLabel", flavor.name)
-				//flavor.ext.set("launcherIconLabelEnabled", (Boolean) null)
+			androidExtension.buildTypes.configureEach { buildType ->
+				androidExtension.productFlavors.configureEach { flavor ->
+					val flavorName = flavor.name
 
-				// Add generated icon path to res-SourceSet. This must be here otherwise it is too late!
-				val sourceSet = androidExtension.sourceSets.maybeCreate(flavor.name)
-				sourceSet.res {
-					srcDir("$buildDir/generated/res/launcher-icon/${flavor.name}/")
+					// Add the property 'launcherIconLabel' to each flavor and set the default value to its name
+					flavor.launcherIconLabel = if (flavorName == "prod") null else flavorName
+
+					if (labelAppIcons) {
+						// make sure generated sources are used by build process
+						// Add generated icon path to res-SourceSet. This must be here otherwise it is too late!
+						val sourceSet = androidExtension.sourceSets.maybeCreate("$flavorName${buildType.name.capitalize()}")
+						sourceSet.res.srcDir("$buildDir/generated/res/launcher-icon/${flavorName}/")
+					}
 				}
 			}
 
@@ -98,6 +121,7 @@ abstract class LinthPlugin : Plugin<Project> {
 				val variantName = variant.name
 				val flavor = variant.flavorName
 				val buildType = variant.buildType.name
+				val labelValue = launcherIconLabel(variant, androidExtension)
 
 				val iconTask = project.tasks.register(
 					"generateAppIcon${variantName.capitalize()}",
@@ -106,7 +130,10 @@ abstract class LinthPlugin : Plugin<Project> {
 					iconTask.variantName = variantName
 					iconTask.flavor = flavor
 					iconTask.buildType = buildType
+					iconTask.labelValue = if (labelAppIcons) labelValue else null
 					iconTask.targetWebIconPath = getWebIconPath(buildDir, flavor)
+
+					iconTask.outputs.upToDateWhen { false } //always run the task
 				}
 
 				project.tasks.named("map${variantName.capitalize()}SourceSetPaths") { it.dependsOn(iconTask) }
@@ -125,6 +152,7 @@ abstract class LinthPlugin : Plugin<Project> {
 				val variantName = variant.name
 				val flavor = variant.flavorName
 				val buildType = variant.buildType.name
+				val uploadKey = uploadKey(variant, androidExtension)
 				if (buildType != "release") return@configureEach
 
 				val packageName = variant.applicationId
@@ -153,12 +181,15 @@ abstract class LinthPlugin : Plugin<Project> {
 					)
 				}
 
-				project.tasks.register("uploadToLinth${variantName.capitalize()}", UploadToLinthBackendTask::class.java) { uploadTask ->
+				project.tasks.register(
+					"uploadToLinth${variantName.capitalize()}",
+					UploadToLinthBackendTask::class.java
+				) { uploadTask ->
 					uploadTask.dependsOn("assemble${variantName.capitalize()}")
 					uploadTask.variant = variant
 					uploadTask.flavor = flavor
 					uploadTask.buildType = buildType
-					uploadTask.uploadKey = pluginExtension.uploadKey.get()
+					uploadTask.uploadKey = uploadKey ?: throw GradleException("No linthUploadKey specified")
 					uploadTask.proxy = pluginExtension.proxy.orNull
 					uploadTask.commitCount = pluginExtension.changelogCommitCount.orNull
 					uploadTask.uploadRequest = uploadRequest
@@ -180,4 +211,16 @@ abstract class LinthPlugin : Plugin<Project> {
 	private fun getWebIconPath(buildDir: File, flavor: String): String {
 		return "$buildDir/generated/res/launcher-icon/${flavor.lowercase()}/web-icon.png"
 	}
+
+	private fun uploadKey(applicationVariant: ApplicationVariant, androidExtension: AppExtension): String? {
+		val productFlavor = applicationVariant.productFlavors.firstOrNull()
+		return productFlavor?.linthUploadKey ?: androidExtension.defaultConfig.linthUploadKey
+
+	}
+
+	private fun launcherIconLabel(applicationVariant: ApplicationVariant, androidExtension: AppExtension): String? {
+		val productFlavor = applicationVariant.productFlavors.firstOrNull()
+		return productFlavor?.launcherIconLabel ?: androidExtension.defaultConfig.launcherIconLabel
+	}
+
 }

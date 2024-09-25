@@ -18,3 +18,4 @@ dependencyResolutionManagement {
 
 include(":appexample")
 includeBuild("linth")
+include(":appexample2")

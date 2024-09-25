@@ -18,10 +18,24 @@ The plugin contains the following functionality:
 After applying the plugin to your project, you can set the following configuration in your build.gradle.kts:
 
 ```kotlin
-linthPlugin {
-	uploadKey = "..." // The upload key identifying an application in the Linth backend (required)
-	changelogCommitCount = 10 // The number of commits to include in the changelog (optional, defaults to 10)
-	proxy = "host:port" // An optional proxy to set for the upload task. Use for local debugging only
+android {
+    defaultConfig {
+      launcherIconLabel = "tescht" // The default icon label per flavor (optional, nullable)
+      linthUploadKey = "..." // The upload key identifying an application in the Linth backend
+    }
+	
+	productFlavors {
+	    create("dev") {
+          launcherIconLabel = "tescht" // Modify the default icon label per flavor (optional, nullable)
+          linthUploadKey = "..." // Modify the default uploadKey per flavor (optional)
+	    }
+    }
+}
+
+linth {
+  changelogCommitCount = 10 // The number of commits to include in the changelog (optional, defaults to 10)
+  proxy = "host:port" // An optional proxy to set for the upload task. Use for local debugging only 
+  labelAppIcons = false // Globally configure the generateAppIcon tasks to label with flavor name (optional, default is enabled)
 }
 ```
 

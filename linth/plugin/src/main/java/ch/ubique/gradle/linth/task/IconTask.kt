@@ -63,7 +63,7 @@ abstract class IconTask : DefaultTask() {
 		val allIcons = IconUtils.findIcons(resDirs, manifestFile)
 
 		val webIconSource = (
-				(File(moduleDir, "src/${flavor.lowercase()}").listFiles() ?: arrayOf()) +
+				(File(moduleDir, "src/$flavor").listFiles() ?: arrayOf()) +
 						(File(moduleDir, "src/main").listFiles() ?: arrayOf()) +
 						(moduleDir.listFiles() ?: arrayOf())
 				).find { it.name.matches(Regex(".*(web|playstore|512)\\.(png|webp)")) }
@@ -85,7 +85,7 @@ abstract class IconTask : DefaultTask() {
 			allIcons.forEach iconsForEach@{ original ->
 				val resTypeName = original.parentFile.name
 				val originalBaseName = original.name.substringBefore(".")
-				val targetDir = File("${generatedIconDir}/${flavor.lowercase()}/$resTypeName")
+				val targetDir = File("${generatedIconDir}/$flavor/$resTypeName")
 
 				val modified = targetDir.listFiles { file ->
 					file.name.matches(Regex("$originalBaseName\\.[^.]+"))

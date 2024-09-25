@@ -209,7 +209,7 @@ abstract class LinthPlugin : Plugin<Project> {
 	}
 
 	private fun getWebIconPath(buildDir: File, flavor: String): String {
-		return "$buildDir/generated/res/launcher-icon/${flavor.lowercase()}/web-icon.png"
+		return "$buildDir/generated/res/launcher-icon/$flavor/web-icon.png"
 	}
 
 	private fun uploadKey(applicationVariant: ApplicationVariant, androidExtension: AppExtension): String? {

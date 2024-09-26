@@ -6,31 +6,16 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      # Checkout repository
-      - name: Checkout
-        uses: actions/checkout@v4.1.1
-
-      # Setup JDK environment
-      - name: Set up JDK
-        uses: actions/setup-java@v4.3.0
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      # Run the Gradle publish task
-      - name: Build and publish artifact
-        uses: gradle/actions/setup-gradle@v3.1.0
-        with:
-          cache-disabled: true
-          build-root-directory: './'
-          arguments: |
-            clean
-            :linth:artifactoryPublish
-            -PubiqueMavenRootUrl=${{ secrets.UB_ARTIFACTORY_URL }} 
-            -PubiqueMavenRepoName=${{ secrets.UB_ARTIFACTORY_REPO_ANDROID }} 
-            -PubiqueMavenUser=${{ secrets.UB_ARTIFACTORY_USER }} 
-            -PubiqueMavenPass=${{ secrets.UB_ARTIFACTORY_PASSWORD }}
-            -PgithubRefName=${{ github.ref_name }}
+  publish2:
+    uses: UbiqueInnovation/actions-android/.github/workflows/android_gradle_task.yml@v1.5.4
+    with:
+      task: 'clean :linth:artifactoryPublish'
+      concurrencyGroup: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.test }}
+      gradleArgs: '-PgithubRefName=${{ github.ref_name }}'
+    secrets:
+      UB_ARTIFACTORY_URL: ${{ secrets.UB_ARTIFACTORY_URL }}
+      UB_ARTIFACTORY_REPO_ANDROID: ${{ secrets.UB_ARTIFACTORY_REPO_ANDROID }}
+      UB_ARTIFACTORY_USERNAME: ${{ secrets.UB_ARTIFACTORY_USERNAME }}
+      UB_ARTIFACTORY_PASSWORD: ${{ secrets.UB_ARTIFACTORY_PASSWORD }}
+      self_hosted_cache_access_key: ${{ secrets.self_hosted_cache_access_key }}
+      self_hosted_cache_secret_key: ${{ secrets.self_hosted_cache_secret_key }}

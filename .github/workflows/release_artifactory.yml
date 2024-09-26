@@ -22,12 +22,15 @@ jobs:
 
       # Run the Gradle publish task
       - name: Build and publish artifact
-        run: |
-          ./gradlew 
-            clean 
-            :linth:artifactoryPublish 
-            -PubiqueMavenRootUrl=${{secrets.UB_ARTIFACTORY_URL}} 
-            -PubiqueMavenRepoName=${{secrets.UB_ARTIFACTORY_REPO_ANDROID}} 
-            -PubiqueMavenUser=${{secrets.UB_ARTIFACTORY_USER}} 
-            -PubiqueMavenPass=${{secrets.UB_ARTIFACTORY_PASSWORD}}
+        uses: gradle/actions/setup-gradle@v3.1.0
+        with:
+          cache-disabled: true
+          build-root-directory: './'
+          arguments: |
+            clean
+            :linth:artifactoryPublish
+            -PubiqueMavenRootUrl=${{ secrets.UB_ARTIFACTORY_URL }} 
+            -PubiqueMavenRepoName=${{ secrets.UB_ARTIFACTORY_REPO_ANDROID }} 
+            -PubiqueMavenUser=${{ secrets.UB_ARTIFACTORY_USER }} 
+            -PubiqueMavenPass=${{ secrets.UB_ARTIFACTORY_PASSWORD }}
             -PgithubRefName=${{ github.ref_name }}

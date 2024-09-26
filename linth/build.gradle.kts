@@ -6,7 +6,7 @@ plugins {
 
 allprojects {
     group = property("GROUP").toString()
-    version = property("VERSION").toString()
+    version = getProjectVersion()
 }
 
 tasks.register("clean", Delete::class.java) {
@@ -15,4 +15,10 @@ tasks.register("clean", Delete::class.java) {
 
 tasks.wrapper {
     distributionType = Wrapper.DistributionType.ALL
+}
+
+private fun getProjectVersion(): String {
+    val versionFromGradleProperties = property("VERSION").toString()
+    val versionFromWorkflow = runCatching { property("githubRefName").toString().removePrefix("v") }.getOrNull()
+    return versionFromWorkflow ?: versionFromGradleProperties
 }

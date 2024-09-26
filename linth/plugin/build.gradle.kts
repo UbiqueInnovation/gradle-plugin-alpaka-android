@@ -43,7 +43,7 @@ gradlePlugin {
 		create(property("ID").toString()) {
 			id = property("ID").toString()
 			implementationClass = property("IMPLEMENTATION_CLASS").toString()
-			version = property("VERSION").toString()
+			version = project.version
 			description = property("DESCRIPTION").toString()
 			displayName = property("DISPLAY_NAME").toString()
 			tags = listOf("android", "ubique")
@@ -70,14 +70,14 @@ tasks.create("setupPluginUploadFromEnvironment") {
 // MAVEN PUBLISHING
 
 publishing {
-    publications {
+	publications {
 		register<MavenPublication>("mavenJava") {
 			from(components.getByName("java"))
 			artifactId = property("ARTIFACT_ID").toString()
 			groupId = property("GROUP").toString()
-			version = property("VERSION").toString()
+			version = project.version.toString()
 		}
-    }
+	}
 }
 
 artifactory {

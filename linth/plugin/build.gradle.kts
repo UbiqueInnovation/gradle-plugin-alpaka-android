@@ -6,8 +6,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
 	kotlin("jvm")
 	`java-gradle-plugin`
-	alias(libs.plugins.pluginPublish) // For Gradle Plugin Portal
-	alias(libs.plugins.jfrog.artifactory) // For our internal Artifactory
+	alias(libs.plugins.pluginPublish)
+	alias(libs.plugins.jfrog.artifactory)
 }
 
 dependencies {
@@ -81,12 +81,13 @@ publishing {
 }
 
 artifactory {
-	setContextUrl(project.property("ubiqueMavenRootUrl")?.toString())
+	val url = System.getenv("UB_ARTIFACTORY_URL") ?: project.property("ubiqueMavenRootUrl")?.toString()
+	setContextUrl(url)
 	publish {
 		repository {
-			repoKey = project.property("ubiqueMavenRepoName")?.toString()
-			username = project.property("ubiqueMavenUser")?.toString()
-			password = project.property("ubiqueMavenPass")?.toString()
+			repoKey = System.getenv("UB_ARTIFACTORY_REPO_ANDROID") ?: project.property("ubiqueMavenRepoName")?.toString()
+			username = System.getenv("UB_ARTIFACTORY_USER") ?: project.property("ubiqueMavenUser")?.toString()
+			password = System.getenv("UB_ARTIFACTORY_PASSWORD") ?: project.property("ubiqueMavenPass")?.toString()
 		}
 
 		defaults {

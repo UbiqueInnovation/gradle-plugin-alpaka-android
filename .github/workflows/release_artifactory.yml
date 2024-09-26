@@ -7,15 +7,15 @@ on:
 
 jobs:
   publish:
-    uses: UbiqueInnovation/actions-android/.github/workflows/android_gradle_task.yml@feature/gradle-task-update
+    uses: UbiqueInnovation/actions-android/.github/workflows/android_gradle_task.yml@v1.6.4
     with:
       task: 'clean :linth:artifactoryPublish'
-      concurrencyGroup: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.test }}
+      concurrencyGroup: ${{ github.workflow }}-${{ github.ref }}
       gradleArgs: '-PgithubRefName=${{ github.ref_name }}'
     secrets:
       UB_ARTIFACTORY_URL: ${{ secrets.UB_ARTIFACTORY_URL }}
       UB_ARTIFACTORY_REPO_ANDROID: ${{ secrets.UB_ARTIFACTORY_REPO_ANDROID }}
-      UB_ARTIFACTORY_USERNAME: ${{ secrets.UB_ARTIFACTORY_USER }}
+      UB_ARTIFACTORY_USER: ${{ secrets.UB_ARTIFACTORY_USER }}
       UB_ARTIFACTORY_PASSWORD: ${{ secrets.UB_ARTIFACTORY_PASSWORD }}
       self_hosted_cache_access_key: ${{ secrets.self_hosted_cache_access_key }}
       self_hosted_cache_secret_key: ${{ secrets.self_hosted_cache_secret_key }}

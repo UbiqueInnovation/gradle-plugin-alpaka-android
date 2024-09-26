@@ -1,4 +1,4 @@
-package com.example.appexample
+package com.example.examplegroovy
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

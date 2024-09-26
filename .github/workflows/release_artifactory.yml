@@ -1,8 +1,9 @@
 name: Publish to Artifactory
 
 on:
-  release:
-    types: [ published ]
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   publish:
@@ -21,4 +22,11 @@ jobs:
 
       # Run the Gradle publish task
       - name: Build and publish artifact
-        run: ./gradlew clean :linth:artifactoryPublish -PubiqueMavenRootUrl=${{secrets.UB_ARTIFACTORY_URL}} -PubiqueMavenRepoName=${{secrets.UB_ARTIFACTORY_REPO_ANDROID}} -PubiqueMavenUser=${{secrets.UB_ARTIFACTORY_USER}} -PubiqueMavenPass=${{secrets.UB_ARTIFACTORY_PASSWORD}}
+        run: |
+          ./gradlew 
+            clean 
+            :linth:artifactoryPublish 
+            -PubiqueMavenRootUrl=${{secrets.UB_ARTIFACTORY_URL}} 
+            -PubiqueMavenRepoName=${{secrets.UB_ARTIFACTORY_REPO_ANDROID}} 
+            -PubiqueMavenUser=${{secrets.UB_ARTIFACTORY_USER}} 
+            -PubiqueMavenPass=${{secrets.UB_ARTIFACTORY_PASSWORD}}

@@ -49,7 +49,15 @@ object StringUtils {
 		}
 
 		val xmlParser = XmlParser(manifest)
-		return xmlParser.findAttributeValues("uses-feature", "android:name", mapOf("android:required" to "true"))
+		val features = xmlParser.findAttributeValues("uses-feature", "android:name", mapOf("android:required" to "true"))
+		val openGl = xmlParser.findAttributeValues("uses-feature", "android:glEsVersion", mapOf("android:required" to "true")).map {
+			when (it) {
+				"0x00020000" -> "OpenGL 2.0"
+				"0x00030002" -> "OpenGL 3.2"
+				else -> "OpenGL $it"
+			}
+		}
+		return features + openGl
 	}
 
 	fun findMetadataValue(manifest: File, name: String): String? {

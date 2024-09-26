@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-	namespace 'com.example.appexample2'
+	namespace 'com.example.examplegroovy'
 	compileSdk 34
 
 	defaultConfig {
-		applicationId "com.example.appexample2"
+		applicationId "com.example.examplegroovy"
 		minSdk 26
 		targetSdk 34
 		versionCode 1

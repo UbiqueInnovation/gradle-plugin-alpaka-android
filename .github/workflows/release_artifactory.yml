@@ -6,8 +6,8 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
-  publish2:
-    uses: UbiqueInnovation/actions-android/.github/workflows/android_gradle_task.yml@v1.5.4
+  publish:
+    uses: UbiqueInnovation/actions-android/.github/workflows/android_gradle_task.yml@feature/gradle-task-update
     with:
       task: 'clean :linth:artifactoryPublish'
       concurrencyGroup: ${{ github.workflow }}-${{ github.ref }}-${{ matrix.test }}

@@ -9,7 +9,7 @@ object StringUtils {
 	 * Finds the app name from specified in the manifest.
 	 */
 	fun findAppName(logger: Logger, resDirs: List<File>, manifest: File): String? {
-		val labelName = findAttribute(manifest, "application", "android:label")?.substringAfter("/") ?: return null
+		val labelName = findAttributeValue(manifest, "application", "android:label")?.substringAfter("/") ?: return null
 
 		val stringFiles = resDirs.filter { it.exists() }
 			.flatMap { resDir ->
@@ -19,6 +19,7 @@ object StringUtils {
 					.mapNotNull { dir ->
 						dir.walkTopDown()
 							.filter { it.isFile && it.name.matches(".*\\.xml".toRegex()) }
+							.sortedByDescending { it.name.contains("strings") }
 							.toList()
 							.takeIf { it.isNotEmpty() }
 					}.flatten()
@@ -29,18 +30,12 @@ object StringUtils {
 			return null
 		}
 
-		logger.debug("Looking for app name in string files: ${stringFiles.joinToString { it.absolutePath }}")
+		logger.debug("Looking for $labelName in string files: ${stringFiles.joinToString { it.absolutePath }}")
 
-		stringFiles.forEach {
-			val xmlParser = XmlParser(it)
-			val appName = xmlParser.findAttribute("string", "name", labelName, findTextValue = true)?.trim('"')
-			if (appName.isNullOrEmpty().not()) {
-				logger.debug("Found app name: $appName")
-				return appName
-			}
+		return stringFiles.firstNotNullOf { file ->
+			val xmlParser = XmlParser(file)
+			xmlParser.findTagValue("string", mapOf("name" to labelName)).takeIf { it.isNullOrEmpty().not() }
 		}
-
-		return null
 	}
 
 	fun findRequiredFeatures(manifest: File): List<String> {
@@ -69,13 +64,13 @@ object StringUtils {
 		return xmlParser.findAttributeValue("meta-data", "android:value", mapOf("android:name" to name))
 	}
 
-	private fun findAttribute(manifest: File, tag: String, attribute: String): String? {
+	private fun findAttributeValue(manifest: File, tag: String, attribute: String): String? {
 		if (manifest.isDirectory || manifest.exists().not()) {
 			return null
 		}
 
 		val xmlParser = XmlParser(manifest)
-		return  xmlParser.findAttribute(tag, attribute)
+		return  xmlParser.findAttributeValue(tag, attribute)
 	}
 
 }

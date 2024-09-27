@@ -17,7 +17,6 @@ dependencies {
 	implementation(libs.agp)
 	implementation(libs.kotlin.gradle)
 
-	implementation(libs.coroutines)
 	implementation(libs.okhttp)
 	implementation(libs.retrofit)
 	implementation(libs.retrofitConverterScalars)

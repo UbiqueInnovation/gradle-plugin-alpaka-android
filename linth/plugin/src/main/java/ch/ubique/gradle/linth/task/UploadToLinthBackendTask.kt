@@ -11,7 +11,6 @@ import ch.ubique.gradle.linth.utils.GitUtils
 import ch.ubique.gradle.linth.utils.SigningConfigUtils
 import ch.ubique.gradle.linth.utils.StringUtils
 import com.android.build.gradle.api.ApplicationVariant
-import kotlinx.coroutines.runBlocking
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
 import org.gradle.api.tasks.Input
@@ -74,22 +73,20 @@ abstract class UploadToLinthBackendTask : DefaultTask() {
 			signature = signature,
 		)
 
-		runBlocking {
-			logger.lifecycle("Starting upload to Linth.")
-			try {
-				val backendRepository = BackendRepository()
-				backendRepository.appsUpload(uploadRequest = uploadRequest, uploadKey = uploadKey)
-				logger.lifecycle("Upload to Linth successful.")
-			} catch (e: Exception) {
-				val message = if (e is HttpException) {
-					e.response()?.run {
-						"${errorBody()?.string()} (status ${code()})"
-					}
-				} else {
-					null
-				} ?: e.message
-				throw GradleException("Upload to Linth failed: $message", e)
-			}
+		logger.lifecycle("Starting upload to Linth.")
+		try {
+			val backendRepository = BackendRepository()
+			backendRepository.appsUpload(uploadRequest = uploadRequest, uploadKey = uploadKey)
+			logger.lifecycle("Upload to Linth successful.")
+		} catch (e: Exception) {
+			val message = if (e is HttpException) {
+				e.response()?.run {
+					"${errorBody()?.string()} (status ${code()})"
+				}
+			} else {
+				null
+			} ?: e.message
+			throw GradleException("Upload to Linth failed: $message", e)
 		}
 	}
 

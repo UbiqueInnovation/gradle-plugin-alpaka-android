@@ -44,7 +44,7 @@ class BackendRepository {
 		resetService()
 	}
 
-	suspend fun appsUpload(uploadRequest: UploadRequest, uploadKey: String) {
+	fun appsUpload(uploadRequest: UploadRequest, uploadKey: String) {
 		val data = MoshiBuilder.createMoshi()
 			.toJson(uploadRequest.toUploadDataJson(uploadKey = uploadKey))
 			.toByteArray()
@@ -54,7 +54,8 @@ class BackendRepository {
 			apk = uploadRequest.apk.toPartMap("apk", "application/octet-stream"),
 			icon = uploadRequest.appIcon.toPartMap("icon", "image/png"),
 			data = data
-		)
+		).execute()
+
 		if (response.isSuccessful.not()) throw HttpException(response)
 	}
 

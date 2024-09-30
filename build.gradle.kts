@@ -13,8 +13,8 @@ tasks.register("preMerge") {
 
     dependsOn(":examplekts:check")
     dependsOn(":examplegroovy:check")
-    dependsOn(gradle.includedBuild("linth").task(":plugin:check"))
-    dependsOn(gradle.includedBuild("linth").task(":plugin:validatePlugins"))
+    dependsOn(gradle.includedBuild("alpaka").task(":plugin:check"))
+    dependsOn(gradle.includedBuild("alpaka").task(":plugin:validatePlugins"))
 }
 
 tasks.wrapper {

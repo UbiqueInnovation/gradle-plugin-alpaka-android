@@ -9,7 +9,7 @@ jobs:
   publish:
     uses: UbiqueInnovation/actions-android/.github/workflows/android_gradle_task.yml@v1.6.4
     with:
-      task: 'clean :linth:artifactoryPublish'
+      task: 'clean :alpaka:artifactoryPublish'
       concurrencyGroup: ${{ github.workflow }}-${{ github.ref }}
       gradleArgs: '-PgithubRefName=${{ github.ref_name }}'
     secrets:

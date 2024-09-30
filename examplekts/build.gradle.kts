@@ -1,10 +1,10 @@
-import ch.ubique.gradle.linth.extensions.applicationvariant.launcherIconLabel
-import ch.ubique.gradle.linth.extensions.applicationvariant.linthUploadKey
+import ch.ubique.gradle.alpaka.extensions.applicationvariant.launcherIconLabel
+import ch.ubique.gradle.alpaka.extensions.applicationvariant.alpakaUploadKey
 
 plugins {
 	alias(libs.plugins.androidApplication)
 	alias(libs.plugins.kotlinAndroid)
-	id("ch.ubique.gradle.linth")
+	id("ch.ubique.gradle.alpaka")
 }
 
 android {
@@ -18,7 +18,7 @@ android {
 		versionCode = 1
 		versionName = "1.0"
 
-		linthUploadKey = "defaultConfig upload key"
+		alpakaUploadKey = "defaultConfig upload key"
 	}
 
 	flavorDimensions += "default"
@@ -27,7 +27,7 @@ android {
 			dimension = "default"
 			applicationIdSuffix = ".dev"
 
-			linthUploadKey = "dev flavor upload key"
+			alpakaUploadKey = "dev flavor upload key"
 			launcherIconLabel = "develop"
 		}
 		create("prod") {
@@ -52,7 +52,7 @@ dependencies {
 	implementation(libs.activity)
 }
 
-linth {
+alpaka {
 	labelAppIcons = true
 	changelogCommitCount = 5
 }

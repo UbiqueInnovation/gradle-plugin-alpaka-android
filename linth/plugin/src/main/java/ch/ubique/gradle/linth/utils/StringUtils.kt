@@ -34,7 +34,9 @@ object StringUtils {
 
 		return stringFiles.firstNotNullOf { file ->
 			val xmlParser = XmlParser(file)
-			xmlParser.findTagValue("string", mapOf("name" to labelName)).takeIf { it.isNullOrEmpty().not() }
+			xmlParser.findTagValue("string", mapOf("name" to labelName))
+				.takeIf { it.isNullOrEmpty().not() }
+				?.trim('"') // Strip PoEditor double quotes
 		}
 	}
 

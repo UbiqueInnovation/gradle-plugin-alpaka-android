@@ -16,7 +16,7 @@ android {
 		minSdk = 26
 		targetSdk = 34
 		versionCode = 1
-		versionName = "1.0"
+		versionName = project.version.toString()
 
 		alpakaUploadKey = "defaultConfig upload key"
 	}
@@ -65,7 +65,6 @@ dependencies {
 	implementation(libs.core.ktx)
 	implementation(libs.appcompat)
 	implementation(libs.material)
-	implementation(libs.activity)
 	implementation(libs.activity)
 }
 

@@ -1,0 +1,26 @@
+name: Build Example
+
+on: [ push, workflow_dispatch ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout repository
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+
+      # Setup JDK environment
+      - name: Set up JDK
+        uses: actions/setup-java@v4.3.0
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # Run the Gradle Build task
+      - name: Build Kts Example App
+        run: ./gradlew clean :examplekts:assemble
+
+      # Run the Gradle Build task
+      - name: Build Groovy Example App
+        run: ./gradlew clean :examplegroovy:assemble

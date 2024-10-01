@@ -17,12 +17,16 @@ import com.android.build.gradle.internal.tasks.factory.dependsOn
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.file.Directory
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.plugins.ExtensionAware
+import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import java.io.File
 
 abstract class AlpakaPlugin : Plugin<Project> {
 
+	@Suppress("DefaultLocale")
 	override fun apply(project: Project) {
 		val pluginExtension = project.extensions.create("alpaka", AlpakaPluginConfig::class.java, project)
 		val androidExtension = getAndroidExtension(project)
@@ -100,7 +104,6 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 		// Hook iconTask into android build process
 		project.afterEvaluate {
-			val buildDir = project.getBuildDirectory()
 			val labelAppIcons = pluginExtension.labelAppIcons.getOrElse(true)
 
 			androidExtension.buildTypes.configureEach { buildType ->
@@ -114,7 +117,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 						// make sure generated sources are used by build process
 						// Add generated icon path to res-SourceSet. This must be here otherwise it is too late!
 						val sourceSet = androidExtension.sourceSets.maybeCreate("$flavorName${buildType.name.capitalize()}")
-						sourceSet.res.srcDir("$buildDir/generated/res/launcher-icon/${flavorName}/")
+						sourceSet.res.srcDir(getGeneratedIconDir(project.layout.buildDirectory, flavorName, buildType.name))
 					}
 				}
 			}
@@ -123,7 +126,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				val variantName = variant.name
 				val flavor = variant.flavorName
 				val buildType = variant.buildType.name
-				val labelValue = launcherIconLabel(variant, androidExtension)
+				val labelValue = getLauncherIconLabel(variant, androidExtension)
 
 				val iconTask = project.tasks.register(
 					"generateAppIcon${variantName.capitalize()}",
@@ -133,9 +136,9 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					iconTask.flavor = flavor
 					iconTask.buildType = buildType
 					iconTask.labelValue = if (labelAppIcons) labelValue else null
-					iconTask.targetWebIconPath = getWebIconPath(buildDir, flavor)
-
-					iconTask.outputs.upToDateWhen { false } //always run the task
+					iconTask.targetWebIconFile = getGeneratedWebIconFile(project.layout.buildDirectory, flavor, buildType)
+					iconTask.generatedIconDir = getGeneratedIconDir(project.layout.buildDirectory, flavor, buildType)
+					iconTask.outputs.upToDateWhen { false } // always run the task
 				}
 
 				project.tasks.named("map${variantName.capitalize()}SourceSetPaths") { it.dependsOn(iconTask) }
@@ -148,13 +151,11 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 		// Hook uploadTask into android build process
 		project.afterEvaluate {
-			val buildDir = project.getBuildDirectory()
-
 			androidExtension.applicationVariants.configureEach { variant ->
 				val variantName = variant.name
 				val flavor = variant.flavorName
 				val buildType = variant.buildType.name
-				val uploadKey = uploadKey(variant, androidExtension)
+				val uploadKey = getUploadKey(variant, androidExtension)
 				if (buildType != "release") return@configureEach
 
 				val packageName = variant.applicationId
@@ -162,32 +163,31 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				val targetSdk = requireNotNull(androidExtension.defaultConfig.targetSdk)
 				val versionName = requireNotNull(androidExtension.defaultConfig.versionName)
 
-				val uploadRequest = variant.outputs.first().let {
-					UploadRequest(
-						apk = it.outputFile,
-						appIcon = File(getWebIconPath(buildDir, flavor)),
-						appName = "", // Will be set from manifest inside the task
-						packageName = packageName,
-						flavor = flavor,
-						branch = buildBranch,
-						minSdk = minSdk,
-						targetSdk = targetSdk,
-						usesFeature = emptyList(), // Will be set from manifest inside the task
-						buildId = buildId,
-						buildNumber = buildNumber,
-						buildTime = buildTimestamp,
-						buildBatch = buildBatch,
-						changelog = "", // Will be set inside the task
-						signature = "", // Will be set inside the task
-						version = versionName,
-					)
-				}
-
 				project.tasks.register(
 					"uploadToAlpaka${variantName.capitalize()}",
 					UploadToAlpakaBackendTask::class.java
 				) { uploadTask ->
-					uploadTask.dependsOn("assemble${variantName.capitalize()}")
+					val uploadRequest = variant.outputs.first().let {
+						UploadRequest(
+							apk = it.outputFile,
+							appIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavor, buildType),
+							appName = "", // Will be set from manifest inside the task
+							packageName = packageName,
+							flavor = flavor,
+							branch = buildBranch,
+							minSdk = minSdk,
+							targetSdk = targetSdk,
+							usesFeature = emptyList(), // Will be set from manifest inside the task
+							buildId = buildId,
+							buildNumber = buildNumber,
+							buildTime = buildTimestamp,
+							buildBatch = buildBatch,
+							changelog = "", // Will be set inside the task
+							signature = "", // Will be set inside the task
+							version = versionName,
+						)
+					}
+
 					uploadTask.variant = variant
 					uploadTask.flavor = flavor
 					uploadTask.buildType = buildType
@@ -195,6 +195,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					uploadTask.proxy = pluginExtension.proxy.orNull
 					uploadTask.commitCount = pluginExtension.changelogCommitCount.orNull
 					uploadTask.uploadRequest = uploadRequest
+
+					uploadTask.dependsOn("assemble${variantName.capitalize()}")
 				}
 			}
 		}
@@ -206,21 +208,20 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		return ext
 	}
 
-	private fun Project.getBuildDirectory(): File {
-		return project.layout.buildDirectory.asFile.get()
+	private fun getGeneratedWebIconFile(buildDir: DirectoryProperty, flavor: String, buildType: String): Provider<File> {
+		return getGeneratedIconDir(buildDir, flavor, buildType).map { it.file("web-icon.png").asFile }
 	}
 
-	private fun getWebIconPath(buildDir: File, flavor: String): String {
-		return "$buildDir/generated/res/launcher-icon/$flavor/web-icon.png"
+	private fun getGeneratedIconDir(buildDir: DirectoryProperty, flavor: String, buildType: String): Provider<Directory> {
+		return buildDir.dir("generated/res/launcher-icon/$flavor/$buildType/res")
 	}
 
-	private fun uploadKey(applicationVariant: ApplicationVariant, androidExtension: AppExtension): String? {
+	private fun getUploadKey(applicationVariant: ApplicationVariant, androidExtension: AppExtension): String? {
 		val productFlavor = applicationVariant.productFlavors.firstOrNull()
 		return productFlavor?.alpakaUploadKey ?: androidExtension.defaultConfig.alpakaUploadKey
-
 	}
 
-	private fun launcherIconLabel(applicationVariant: ApplicationVariant, androidExtension: AppExtension): String? {
+	private fun getLauncherIconLabel(applicationVariant: ApplicationVariant, androidExtension: AppExtension): String? {
 		val productFlavor = applicationVariant.productFlavors.firstOrNull()
 		return productFlavor?.launcherIconLabel ?: androidExtension.defaultConfig.launcherIconLabel
 	}

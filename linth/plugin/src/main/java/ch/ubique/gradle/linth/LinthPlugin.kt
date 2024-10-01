@@ -93,6 +93,9 @@ abstract class LinthPlugin : Plugin<Project> {
 				project.tasks.named("process${variantName.capitalize()}ManifestForPackage") {
 					it.dependsOn(injectManifestTask)
 				}
+				project.tasks.named("processApplicationManifest${variantName.capitalize()}ForBundle") {
+					it.dependsOn(injectManifestTask)
+				}
 			}
 		}
 

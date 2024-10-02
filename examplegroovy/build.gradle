@@ -26,7 +26,7 @@ android {
 			applicationIdSuffix ".dev"
 
 			if (launcherIconLabel != "dev") {
-				error("Expected launcherIconLabel 'dev' but was $launcherIconLabel")
+				throw new GradleException("Expected launcherIconLabel 'dev' but was $launcherIconLabel")
 			}
 		}
 		tescht {
@@ -36,14 +36,14 @@ android {
 			launcherIconLabel = "test"
 
 			if (launcherIconLabel != "test") {
-				error("Expected launcherIconLabel 'test' but was $launcherIconLabel")
+				throw new GradleException("Expected launcherIconLabel 'test' but was $launcherIconLabel")
 			}
 		}
 		prod {
 			dimension "default"
 
 			if (launcherIconLabel != null) {
-				error("Expected launcherIconLabel null but was $launcherIconLabel")
+				throw new GradleException("Expected launcherIconLabel null but was $launcherIconLabel")
 			}
 		}
 	}

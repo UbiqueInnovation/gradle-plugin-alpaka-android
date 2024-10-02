@@ -9,10 +9,15 @@ private fun <T> ApplicationVariantDimension.setProperty(key: String, value: T) {
 	extensionAware.extraProperties[key] = value
 }
 
+private fun <T> ApplicationVariantDimension.getProperty(key: String): T {
+	val extensionAware = this as ExtensionAware
+	return extensionAware.extraProperties[key] as T
+}
+
 var ApplicationVariantDimension.launcherIconLabel: String?
-	get() = error("only setter")
+	get() = getProperty("launcherIconLabel")
 	set(value) = setProperty("launcherIconLabel", value)
 
 var ApplicationVariantDimension.alpakaUploadKey: String?
-	get() = error("only setter")
+	get() = getProperty("alpakaUploadKey")
 	set(value) = setProperty("alpakaUploadKey", value)

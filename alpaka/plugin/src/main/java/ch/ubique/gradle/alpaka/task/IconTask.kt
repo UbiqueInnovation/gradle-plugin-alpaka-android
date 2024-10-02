@@ -50,7 +50,10 @@ abstract class IconTask : DefaultTask() {
 			File(moduleDir, "build.gradle").lastModified(),
 			File(moduleDir, "build.gradle.kts").lastModified(),
 			File(project.rootDir, "build.gradle").lastModified(),
-			File(project.rootDir, "build.gradle.kts").lastModified()
+			File(project.rootDir, "build.gradle.kts").lastModified(),
+			File(project.rootDir, "settings.gradle").lastModified(),
+			File(project.rootDir, "settings.gradle.kts").lastModified(),
+			File(project.rootDir, "gradle/libs.versions.toml").lastModified(),
 		).max()
 
 		val manifestFile = project.getMergedManifestFile(variantName)

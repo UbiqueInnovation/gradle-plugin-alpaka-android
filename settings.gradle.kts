@@ -16,6 +16,6 @@ dependencyResolutionManagement {
     }
 }
 
-includeBuild("linth")
+includeBuild("alpaka")
 include(":examplekts")
 include(":examplegroovy")

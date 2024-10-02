@@ -36,7 +36,7 @@ object StringUtils {
 			val xmlParser = XmlParser(file)
 			xmlParser.findTagValue("string", mapOf("name" to labelName))
 				.takeIf { it.isNullOrEmpty().not() }
-				?.trim('"') // Strip PoEditor double quotes
+				?.trim('"') // Strip double quotes
 		}
 	}
 

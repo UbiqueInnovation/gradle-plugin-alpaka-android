@@ -52,7 +52,7 @@ class BackendRepository {
 
 		val response = service.appsUpload(
 			apk = uploadRequest.apk.toPartMap("apk", "application/octet-stream"),
-			icon = uploadRequest.appIcon.toPartMap("icon", "image/png"),
+			icon = uploadRequest.appIcon.get().toPartMap("icon", "image/png"),
 			data = data
 		).execute()
 

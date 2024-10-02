@@ -22,16 +22,32 @@ android {
 	}
 
 	flavorDimensions += "default"
+
 	productFlavors {
 		create("dev") {
 			dimension = "default"
 			applicationIdSuffix = ".dev"
 
-			alpakaUploadKey = "dev flavor upload key"
-			launcherIconLabel = "develop"
+			if (launcherIconLabel != "dev") {
+				error("Expected launcherIconLabel 'dev' but was $launcherIconLabel")
+			}
+		}
+		create("tescht") {
+			dimension = "default"
+			applicationIdSuffix = ".test"
+			alpakaUploadKey = "test flavor upload key"
+			launcherIconLabel = "test"
+
+			if (launcherIconLabel != "test") {
+				error("Expected launcherIconLabel 'test' but was $launcherIconLabel")
+			}
 		}
 		create("prod") {
 			dimension = "default"
+
+			if (launcherIconLabel != null) {
+				error("Expected launcherIconLabel null but was $launcherIconLabel")
+			}
 		}
 	}
 
@@ -39,6 +55,7 @@ android {
 		sourceCompatibility = JavaVersion.VERSION_17
 		targetCompatibility = JavaVersion.VERSION_17
 	}
+
 	kotlinOptions {
 		jvmTarget = JavaVersion.VERSION_17.toString()
 	}

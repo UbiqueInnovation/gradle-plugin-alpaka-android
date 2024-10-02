@@ -6,6 +6,8 @@ import ch.ubique.gradle.alpaka.extensions.olderThan
 import ch.ubique.gradle.alpaka.utils.IconUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.file.Directory
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import java.io.File
 
@@ -31,30 +33,27 @@ abstract class IconTask : DefaultTask() {
 	abstract var labelValue: String?
 
 	@get:Input
-	abstract var targetWebIconPath: String
+	abstract var targetWebIconFile: Provider<File>
 
 	@get:OutputDirectory
-	abstract var generatedIconDir: File
-
-	init {
-		val buildDir = project.layout.buildDirectory.asFile.get()
-		generatedIconDir = File("$buildDir/generated/res/launcher-icon/")
-	}
+	abstract var generatedIconDir: Provider<Directory>
 
 	@TaskAction
 	fun iconAction() {
 		val moduleDir = File(project.rootDir, project.name)
-		val targetWebIcon = File(targetWebIconPath).also {
+		val targetWebIcon = targetWebIconFile.get().also {
 			it.parentFile.mkdirs()
 			it.createNewFile()
 		}
-
 
 		val gradleLastModified = listOf(
 			File(moduleDir, "build.gradle").lastModified(),
 			File(moduleDir, "build.gradle.kts").lastModified(),
 			File(project.rootDir, "build.gradle").lastModified(),
-			File(project.rootDir, "build.gradle.kts").lastModified()
+			File(project.rootDir, "build.gradle.kts").lastModified(),
+			File(project.rootDir, "settings.gradle").lastModified(),
+			File(project.rootDir, "settings.gradle.kts").lastModified(),
+			File(project.rootDir, "gradle/libs.versions.toml").lastModified(),
 		).max()
 
 		val manifestFile = project.getMergedManifestFile(variantName)
@@ -85,7 +84,7 @@ abstract class IconTask : DefaultTask() {
 			allIcons.forEach iconsForEach@{ original ->
 				val resTypeName = original.parentFile.name
 				val originalBaseName = original.name.substringBefore(".")
-				val targetDir = File("${generatedIconDir}/$flavor/$resTypeName")
+				val targetDir = File(generatedIconDir.get().asFile, resTypeName)
 
 				val modified = targetDir.listFiles { file ->
 					file.name.matches(Regex("$originalBaseName\\.[^.]+"))

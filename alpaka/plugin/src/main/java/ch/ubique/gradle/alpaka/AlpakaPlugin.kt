@@ -3,9 +3,11 @@
 package ch.ubique.gradle.alpaka
 
 import ch.ubique.gradle.alpaka.config.AlpakaPluginConfig
+import ch.ubique.gradle.alpaka.extensions.applicationvariant.launcherIconLabel
+import ch.ubique.gradle.alpaka.extensions.capitalize
 import ch.ubique.gradle.alpaka.extensions.getMergedManifestFile
+import ch.ubique.gradle.alpaka.extensions.productflavor.launcherIconLabel as flavorLauncherIconLabel
 import ch.ubique.gradle.alpaka.extensions.productflavor.alpakaUploadKey
-import ch.ubique.gradle.alpaka.extensions.productflavor.launcherIconLabel
 import ch.ubique.gradle.alpaka.model.UploadRequest
 import ch.ubique.gradle.alpaka.task.IconTask
 import ch.ubique.gradle.alpaka.task.InjectMetadataIntoManifestTask
@@ -102,31 +104,28 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			}
 		}
 
+		androidExtension.productFlavors.configureEach { flavor ->
+			// Add the property 'launcherIconLabel' to each flavor and set the default value to its name
+			val flavorName = flavor.name
+			flavor.launcherIconLabel = if (flavorName == "prod") null else flavorName
+		}
+
 		// Hook iconTask into android build process
 		project.afterEvaluate {
 			val labelAppIcons = pluginExtension.labelAppIcons.getOrElse(true)
-
-			androidExtension.buildTypes.configureEach { buildType ->
-				androidExtension.productFlavors.configureEach { flavor ->
-					val flavorName = flavor.name
-
-					// Add the property 'launcherIconLabel' to each flavor and set the default value to its name
-					flavor.launcherIconLabel = if (flavorName == "prod") null else flavorName
-
-					if (labelAppIcons) {
-						// make sure generated sources are used by build process
-						// Add generated icon path to res-SourceSet. This must be here otherwise it is too late!
-						val sourceSet = androidExtension.sourceSets.maybeCreate("$flavorName${buildType.name.capitalize()}")
-						sourceSet.res.srcDir(getGeneratedIconDir(project.layout.buildDirectory, flavorName, buildType.name))
-					}
-				}
-			}
 
 			androidExtension.applicationVariants.configureEach { variant ->
 				val variantName = variant.name
 				val flavor = variant.flavorName
 				val buildType = variant.buildType.name
 				val labelValue = getLauncherIconLabel(variant, androidExtension)
+
+				if (labelAppIcons) {
+					// make sure generated sources are used by build process
+					// Add generated icon path to res-SourceSet. This must be here otherwise it is too late!
+					val sourceSet = androidExtension.sourceSets.maybeCreate(variantName)
+					sourceSet.res.srcDir(getGeneratedIconDir(project.layout.buildDirectory, flavor, buildType))
+				}
 
 				val iconTask = project.tasks.register(
 					"generateAppIcon${variantName.capitalize()}",
@@ -223,7 +222,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 	private fun getLauncherIconLabel(applicationVariant: ApplicationVariant, androidExtension: AppExtension): String? {
 		val productFlavor = applicationVariant.productFlavors.firstOrNull()
-		return productFlavor?.launcherIconLabel ?: androidExtension.defaultConfig.launcherIconLabel
+		return productFlavor?.flavorLauncherIconLabel ?: androidExtension.defaultConfig.launcherIconLabel
 	}
 
 }

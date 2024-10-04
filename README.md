@@ -14,7 +14,7 @@ The plugin contains the following functionality:
 * Writes build information as fields to the `BuildConfig` class (see section [Build information](#build-information))
 * Registers a task `injectMetadataIntoManifest<VARIANT>` for each variant that injects the build information into the Android
   manifest
-* Registers a task `generateAppIcon<VARIANT>` for each variant that generates an app icon with the flavor name as overlay
+* Registers a task `labelAppIcon<VARIANT>` for each variant that generates an app icon with the flavor name as overlay
 * Registers a task `uploadToAlpaka<VARIANT>` for each release variant that uploads the APK to the Alpaka backend
 
 ## Configuration

@@ -44,16 +44,16 @@ class BackendRepository {
 		resetService()
 	}
 
-	fun appsUpload(uploadRequest: UploadRequest, uploadKey: String) {
+	fun appsUpload(uploadRequest: UploadRequest, apk: File, appIcon: File, uploadKey: String) {
 		val data = MoshiBuilder.createMoshi()
 			.toJson(uploadRequest.toUploadDataJson(uploadKey = uploadKey))
 			.toByteArray()
 			.toRequestBody("application/json".toMediaType())
 
 		val response = service.appsUpload(
-			apk = uploadRequest.apk.toPartMap("apk", "application/octet-stream"),
-			icon = uploadRequest.appIcon.get().toPartMap("icon", "image/png"),
-			data = data
+			apk = apk.toPartMap("apk", "application/octet-stream"),
+			icon = appIcon.toPartMap("icon", "image/png"),
+			data = data,
 		).execute()
 
 		if (response.isSuccessful.not()) throw HttpException(response)

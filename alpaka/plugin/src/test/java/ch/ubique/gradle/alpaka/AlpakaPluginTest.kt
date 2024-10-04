@@ -16,7 +16,7 @@ class AlpakaPluginTest {
 
         GradleRunner.create()
             .withProjectDir(projectpath)
-            .withArguments("appexample:generateAppIconDevDebug", "-PubiqueMavenRootUrl=abc", "-PubiqueMavenRepoName=abc", "-PubiqueMavenUser=abc", "-PubiqueMavenPass=abc")
+            .withArguments("appexample:labelAppIconDevDebug", "-PubiqueMavenRootUrl=abc", "-PubiqueMavenRepoName=abc", "-PubiqueMavenUser=abc", "-PubiqueMavenPass=abc")
             //.withPluginClasspath()
             .build()
          */

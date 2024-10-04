@@ -2,23 +2,25 @@
 
 package ch.ubique.gradle.alpaka.task
 
-import ch.ubique.gradle.alpaka.extensions.getMergedManifestFile
 import ch.ubique.gradle.alpaka.extensions.getResDirs
 import ch.ubique.gradle.alpaka.model.UploadRequest
 import ch.ubique.gradle.alpaka.network.BackendRepository
 import ch.ubique.gradle.alpaka.network.OkHttpInstance
 import ch.ubique.gradle.alpaka.utils.GitUtils
+import ch.ubique.gradle.alpaka.utils.ManifestUtils
 import ch.ubique.gradle.alpaka.utils.SigningConfigUtils
-import ch.ubique.gradle.alpaka.utils.StringUtils
 import com.android.build.gradle.api.ApplicationVariant
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.options.Option
 import org.gradle.work.DisableCachingByDefault
 import retrofit2.HttpException
+import java.io.File
 
 @DisableCachingByDefault
 abstract class UploadToAlpakaBackendTask : DefaultTask() {
@@ -53,13 +55,22 @@ abstract class UploadToAlpakaBackendTask : DefaultTask() {
 	@get:Input
 	abstract var uploadRequest: UploadRequest
 
+	@get:InputFile
+	abstract var mergedManifestFile: Provider<File>
+
+	@get:InputFile
+	abstract var apk: Provider<File>
+
+	@get:InputFile
+	abstract var webIcon: Provider<File>
+
 	@TaskAction
 	fun uploadAction() {
-
-		proxy?.let {
-			val proxyVal = it.split(":")
-			OkHttpInstance.setProxy(proxyVal[0], proxyVal[1].toInt())
-		} ?: run {
+		val proxy = proxy
+		if (proxy != null) {
+			val (host, port) = proxy.split(":")
+			OkHttpInstance.setProxy(host, port.toInt())
+		} else {
 			OkHttpInstance.setProxy(null)
 		}
 
@@ -76,7 +87,7 @@ abstract class UploadToAlpakaBackendTask : DefaultTask() {
 		logger.lifecycle("Starting upload to Alpaka.")
 		try {
 			val backendRepository = BackendRepository()
-			backendRepository.appsUpload(uploadRequest = uploadRequest, uploadKey = uploadKey)
+			backendRepository.appsUpload(uploadRequest, apk.get(), webIcon.get(), uploadKey)
 			logger.lifecycle("Upload to Alpaka successful.")
 		} catch (e: Exception) {
 			val message = if (e is HttpException) {
@@ -91,10 +102,10 @@ abstract class UploadToAlpakaBackendTask : DefaultTask() {
 	}
 
 	private fun updateUploadRequestWithManifestInformation(): UploadRequest {
-		val manifestFile = project.getMergedManifestFile(variant.name)
+		val manifestFile = mergedManifestFile.get()
 		val resDirs = project.getResDirs(flavor)
 
-		val appName = StringUtils.findAppName(logger, resDirs, manifestFile)
+		val appName = ManifestUtils.findAppName(logger, resDirs, manifestFile)
 			?: throw GradleException(
 				"""
 				Failed to find app name in string resources.
@@ -103,7 +114,7 @@ abstract class UploadToAlpakaBackendTask : DefaultTask() {
 				""".trimIndent()
 			)
 
-		val usesFeatures = StringUtils.findRequiredFeatures(manifestFile)
+		val usesFeatures = ManifestUtils.findRequiredFeatures(manifestFile)
 
 		return uploadRequest.copy(
 			appName = appName,

@@ -3,7 +3,6 @@
 package ch.ubique.gradle.alpaka
 
 import ch.ubique.gradle.alpaka.config.AlpakaPluginConfig
-import ch.ubique.gradle.alpaka.extensions.applicationvariant.launcherIconLabel
 import ch.ubique.gradle.alpaka.extensions.capitalize
 import ch.ubique.gradle.alpaka.extensions.getMergedManifestFile
 import ch.ubique.gradle.alpaka.extensions.listFilesOrEmpty
@@ -23,6 +22,7 @@ import org.gradle.api.file.Directory
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.provider.Provider
+import org.gradle.kotlin.dsl.launcherIconLabel
 import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import java.io.File
 import ch.ubique.gradle.alpaka.extensions.productflavor.launcherIconLabel as flavorLauncherIconLabel

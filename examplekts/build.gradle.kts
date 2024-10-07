@@ -1,6 +1,3 @@
-import ch.ubique.gradle.alpaka.extensions.applicationvariant.alpakaUploadKey
-import ch.ubique.gradle.alpaka.extensions.applicationvariant.launcherIconLabel
-
 plugins {
 	alias(libs.plugins.androidApplication)
 	alias(libs.plugins.kotlinAndroid)

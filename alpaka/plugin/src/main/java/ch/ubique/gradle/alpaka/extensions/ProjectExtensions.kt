@@ -1,21 +1,19 @@
 package ch.ubique.gradle.alpaka.extensions
 
-
 import com.android.build.gradle.BaseExtension
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
+import org.gradle.api.provider.Provider
 import java.io.File
 
 /**
  * returns File with merged manifest
  */
-fun Project.getMergedManifestFile(variantName: String): File {
-	return File(
-		layout.buildDirectory.asFile.get(),
-		"intermediates/merged_manifests/${variantName}/process${variantName.capitalize()}Manifest/AndroidManifest.xml"
-	)
+fun Project.getMergedManifestFile(variantName: String): Provider<File> {
+	return layout.buildDirectory
+		.file("intermediates/merged_manifests/${variantName}/process${variantName.capitalize()}Manifest/AndroidManifest.xml")
+		.map { it.asFile }
 }
-
 
 fun Project.getResDirs(flavor: String): List<File> {
 	val androidModules: List<BaseExtension> = configurations

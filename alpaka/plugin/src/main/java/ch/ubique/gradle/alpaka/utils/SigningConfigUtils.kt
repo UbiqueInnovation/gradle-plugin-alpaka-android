@@ -35,7 +35,7 @@ class SigningConfigUtils(private val logger: Logger) {
 		return entry.certificate
 	}
 
-	private fun getFingerprint(certificate: Certificate, hashAlgorithm: String): String? {
+	private fun getFingerprint(certificate: Certificate, hashAlgorithm: String): String {
 		val digest = MessageDigest.getInstance(hashAlgorithm)
 		return digest.digest(certificate.encoded).toHexadecimalString()
 	}

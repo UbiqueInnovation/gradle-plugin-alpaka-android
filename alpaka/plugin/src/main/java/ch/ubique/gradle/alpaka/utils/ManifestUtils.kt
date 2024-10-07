@@ -3,13 +3,17 @@ package ch.ubique.gradle.alpaka.utils
 import org.gradle.api.logging.Logger
 import java.io.File
 
-object StringUtils {
+object ManifestUtils {
 
 	/**
 	 * Finds the app name from specified in the manifest.
 	 */
 	fun findAppName(logger: Logger, resDirs: List<File>, manifest: File): String? {
-		val labelName = findAttributeValue(manifest, "application", "android:label")?.substringAfter("/") ?: return null
+		val labelName = findAttributeValue(manifest, "application", "android:label")?.substringAfter("/")
+		if (labelName.isNullOrEmpty()) {
+			logger.warn("<application android:label> not found in manifest")
+			return null
+		}
 
 		val stringFiles = resDirs.filter { it.exists() }
 			.flatMap { resDir ->
@@ -49,21 +53,14 @@ object StringUtils {
 		val features = xmlParser.findAttributeValues("uses-feature", "android:name", mapOf("android:required" to "true"))
 		val openGl = xmlParser.findAttributeValues("uses-feature", "android:glEsVersion", mapOf("android:required" to "true")).map {
 			when (it) {
-				"0x00020000" -> "OpenGL 2.0"
-				"0x00030002" -> "OpenGL 3.2"
-				else -> "OpenGL $it"
+				"0x00020000" -> "android.opengl.GLES20"
+				"0x00030000" -> "android.opengl.GLES30"
+				"0x00030001" -> "android.opengl.GLES31"
+				"0x00030002" -> "android.opengl.GLES32"
+				else -> "android.opengl.GLES/$it"
 			}
 		}
 		return features + openGl
-	}
-
-	fun findMetadataValue(manifest: File, name: String): String? {
-		if (manifest.isDirectory || manifest.exists().not()) {
-			return null
-		}
-
-		val xmlParser = XmlParser(manifest)
-		return xmlParser.findAttributeValue("meta-data", "android:value", mapOf("android:name" to name))
 	}
 
 	private fun findAttributeValue(manifest: File, tag: String, attribute: String): String? {

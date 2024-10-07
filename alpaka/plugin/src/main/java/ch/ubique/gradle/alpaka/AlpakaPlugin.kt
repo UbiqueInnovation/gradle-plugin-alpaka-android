@@ -6,7 +6,7 @@ import ch.ubique.gradle.alpaka.config.AlpakaPluginConfig
 import ch.ubique.gradle.alpaka.extensions.applicationvariant.launcherIconLabel
 import ch.ubique.gradle.alpaka.extensions.capitalize
 import ch.ubique.gradle.alpaka.extensions.getMergedManifestFile
-import ch.ubique.gradle.alpaka.extensions.productflavor.launcherIconLabel as flavorLauncherIconLabel
+import ch.ubique.gradle.alpaka.extensions.listFilesOrEmpty
 import ch.ubique.gradle.alpaka.extensions.productflavor.alpakaUploadKey
 import ch.ubique.gradle.alpaka.model.UploadRequest
 import ch.ubique.gradle.alpaka.task.IconTask
@@ -25,6 +25,7 @@ import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import java.io.File
+import ch.ubique.gradle.alpaka.extensions.productflavor.launcherIconLabel as flavorLauncherIconLabel
 
 abstract class AlpakaPlugin : Plugin<Project> {
 
@@ -81,7 +82,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					"injectMetadataIntoManifest${variantName.capitalize()}",
 					InjectMetadataIntoManifestTask::class.java
 				) { manifestTask ->
-					manifestTask.outputs.file(project.getMergedManifestFile(variantName))
+					val mergedManifestFile = project.getMergedManifestFile(variantName)
+					manifestTask.mergedManifestFile = mergedManifestFile
 					manifestTask.variantName = variantName
 					manifestTask.flavor = flavor
 					manifestTask.buildType = buildType
@@ -90,10 +92,11 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					manifestTask.buildBatch = buildBatch
 					manifestTask.buildTimestamp = buildTimestamp
 					manifestTask.buildBranch = buildBranch
+					manifestTask.outputs.file(mergedManifestFile)
 				}
 
 				variant.outputs.forEach { output ->
-					output.processManifestProvider.get().finalizedBy(injectManifestTask)
+					output.processManifestProvider.configure { it.finalizedBy(injectManifestTask) }
 				}
 				project.tasks.named("process${variantName.capitalize()}ManifestForPackage") {
 					it.dependsOn(injectManifestTask)
@@ -128,16 +131,20 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				}
 
 				val iconTask = project.tasks.register(
-					"generateAppIcon${variantName.capitalize()}",
+					"labelAppIcon${variantName.capitalize()}",
 					IconTask::class.java
 				) { iconTask ->
 					iconTask.variantName = variantName
 					iconTask.flavor = flavor
 					iconTask.buildType = buildType
 					iconTask.labelValue = if (labelAppIcons) labelValue else null
-					iconTask.targetWebIconFile = getGeneratedWebIconFile(project.layout.buildDirectory, flavor, buildType)
+					iconTask.sourceWebIconFile = project.provider { findWebIcon(project.projectDir, flavor) }
+					iconTask.mergedManifestFile = project.getMergedManifestFile(variantName)
+					iconTask.generatedWebIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavor, buildType)
 					iconTask.generatedIconDir = getGeneratedIconDir(project.layout.buildDirectory, flavor, buildType)
 					iconTask.outputs.upToDateWhen { false } // always run the task
+
+					iconTask.mustRunAfter(project.tasks.named("injectMetadataIntoManifest${variantName.capitalize()}"))
 				}
 
 				project.tasks.named("map${variantName.capitalize()}SourceSetPaths") { it.dependsOn(iconTask) }
@@ -166,33 +173,32 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					"uploadToAlpaka${variantName.capitalize()}",
 					UploadToAlpakaBackendTask::class.java
 				) { uploadTask ->
-					val uploadRequest = variant.outputs.first().let {
-						UploadRequest(
-							apk = it.outputFile,
-							appIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavor, buildType),
-							appName = "", // Will be set from manifest inside the task
-							packageName = packageName,
-							flavor = flavor,
-							branch = buildBranch,
-							minSdk = minSdk,
-							targetSdk = targetSdk,
-							usesFeature = emptyList(), // Will be set from manifest inside the task
-							buildId = buildId,
-							buildNumber = buildNumber,
-							buildTime = buildTimestamp,
-							buildBatch = buildBatch,
-							changelog = "", // Will be set inside the task
-							signature = "", // Will be set inside the task
-							version = versionName,
-						)
-					}
-
 					uploadTask.variant = variant
 					uploadTask.flavor = flavor
 					uploadTask.buildType = buildType
 					uploadTask.uploadKey = uploadKey ?: throw GradleException("No alpakaUploadKey specified")
+					uploadTask.mergedManifestFile = project.getMergedManifestFile(variantName)
+					uploadTask.apk = project.provider { variant.outputs.first().outputFile }
+					uploadTask.webIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavor, buildType)
 					uploadTask.proxy = pluginExtension.proxy.orNull
 					uploadTask.commitCount = pluginExtension.changelogCommitCount.orNull
+
+					val uploadRequest = UploadRequest(
+						appName = "", // Will be set from manifest inside the task
+						packageName = packageName,
+						flavor = flavor,
+						branch = buildBranch,
+						minSdk = minSdk,
+						targetSdk = targetSdk,
+						usesFeature = emptyList(), // Will be set from manifest inside the task
+						buildId = buildId,
+						buildNumber = buildNumber,
+						buildTime = buildTimestamp,
+						buildBatch = buildBatch,
+						changelog = "", // Will be set inside the task
+						signature = "", // Will be set inside the task
+						version = versionName,
+					)
 					uploadTask.uploadRequest = uploadRequest
 
 					uploadTask.dependsOn("assemble${variantName.capitalize()}")
@@ -207,8 +213,16 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		return ext
 	}
 
+	private fun findWebIcon(moduleDir: File, flavor: String): File {
+		val dirs = sequenceOf(File(moduleDir, "src/$flavor"), File(moduleDir, "src/main"), moduleDir)
+		return dirs
+			.flatMap { it.listFilesOrEmpty() }
+			.find { it.name.matches(Regex(".*(web|playstore|512)\\.(png|webp)")) }
+			?: throw GradleException("Must provide web icon matching (web|playstore|512).(png|webp) in one of the following locations:\n  ${dirs.joinToString()}")
+	}
+
 	private fun getGeneratedWebIconFile(buildDir: DirectoryProperty, flavor: String, buildType: String): Provider<File> {
-		return getGeneratedIconDir(buildDir, flavor, buildType).map { it.file("web-icon.png").asFile }
+		return buildDir.file("outputs/launcher-icon/$flavor/$buildType/web-icon.png").map { it.asFile }
 	}
 
 	private fun getGeneratedIconDir(buildDir: DirectoryProperty, flavor: String, buildType: String): Provider<Directory> {

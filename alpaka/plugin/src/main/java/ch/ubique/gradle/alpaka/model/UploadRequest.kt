@@ -1,12 +1,8 @@
 package ch.ubique.gradle.alpaka.model
 
 import ch.ubique.gradle.alpaka.network.dto.UploadDataDto
-import org.gradle.api.provider.Provider
-import java.io.File
 
 data class UploadRequest(
-	val apk: File,
-	val appIcon: Provider<File>,
 	val appName: String,
 	val packageName: String,
 	val flavor: String,

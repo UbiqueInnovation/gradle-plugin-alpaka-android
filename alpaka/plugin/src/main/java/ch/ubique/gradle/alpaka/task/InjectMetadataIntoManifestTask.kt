@@ -1,9 +1,10 @@
 package ch.ubique.gradle.alpaka.task
 
-import ch.ubique.gradle.alpaka.extensions.getMergedManifestFile
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.work.DisableCachingByDefault
 import java.io.File
@@ -49,9 +50,12 @@ abstract class InjectMetadataIntoManifestTask : DefaultTask() {
 	@get:Input
 	abstract var buildBranch: String
 
+	@get:InputFile
+	abstract var mergedManifestFile: Provider<File>
+
 	@TaskAction
 	fun injectMetadataIntoManifest() {
-		val manifestFile = project.getMergedManifestFile(variantName)
+		val manifestFile = mergedManifestFile.get()
 		if (manifestFile.exists()) {
 			manipulateManifestFile(manifestFile)
 		} else {

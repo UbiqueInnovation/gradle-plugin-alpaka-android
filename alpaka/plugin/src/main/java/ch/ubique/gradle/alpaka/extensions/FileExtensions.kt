@@ -7,3 +7,7 @@ fun File?.olderThan(other: File, orLastModified: Long): Boolean {
 		other.lastModified() > it || orLastModified > it
 	} ?: true
 }
+
+fun File.listFilesOrEmpty(): List<File> {
+	return listFiles()?.asList() ?: emptyList()
+}

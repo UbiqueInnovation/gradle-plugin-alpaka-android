@@ -1,5 +1,5 @@
-import ch.ubique.gradle.alpaka.extensions.applicationvariant.launcherIconLabel
 import ch.ubique.gradle.alpaka.extensions.applicationvariant.alpakaUploadKey
+import ch.ubique.gradle.alpaka.extensions.applicationvariant.launcherIconLabel
 
 plugins {
 	alias(libs.plugins.androidApplication)
@@ -16,7 +16,7 @@ android {
 		minSdk = 26
 		targetSdk = 34
 		versionCode = 1
-		versionName = project.version.toString()
+		versionName = "1.0"
 
 		alpakaUploadKey = "defaultConfig upload key"
 	}

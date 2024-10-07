@@ -5,6 +5,10 @@ on: [ push, workflow_dispatch ]
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module: ["examplekts", "examplegroovy"]
+        task: ["assemble", "uploadToAlpakaTeschtRelease --alpaka-dryrun"]
     steps:
       # Checkout repository
       - name: Checkout
@@ -17,10 +21,6 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # Run the Gradle Build task
-      - name: Build Kts Example App
-        run: ./gradlew clean :examplekts:assemble
-
-      # Run the Gradle Build task
-      - name: Build Groovy Example App
-        run: ./gradlew clean :examplegroovy:assemble
+      # Run the Gradle task
+      - name: Run :${{ matrix.module }}:${{ matrix.task }}
+        run: ./gradlew clean :${{ matrix.module }}:${{ matrix.task }}

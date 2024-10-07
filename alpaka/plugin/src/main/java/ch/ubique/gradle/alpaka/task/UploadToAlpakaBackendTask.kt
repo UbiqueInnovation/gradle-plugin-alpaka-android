@@ -3,6 +3,7 @@
 package ch.ubique.gradle.alpaka.task
 
 import ch.ubique.gradle.alpaka.extensions.getResDirs
+import ch.ubique.gradle.alpaka.extensions.prettyPrint
 import ch.ubique.gradle.alpaka.model.UploadRequest
 import ch.ubique.gradle.alpaka.network.BackendRepository
 import ch.ubique.gradle.alpaka.network.OkHttpInstance
@@ -64,6 +65,10 @@ abstract class UploadToAlpakaBackendTask : DefaultTask() {
 	@get:InputFile
 	abstract var webIcon: Provider<File>
 
+	@get:Input
+	@set:Option(option = "alpaka-dryrun", description = "Execute the Alpaka upload as a dry-run.")
+	var dryrun: Boolean = false
+
 	@TaskAction
 	fun uploadAction() {
 		val proxy = proxy
@@ -84,10 +89,22 @@ abstract class UploadToAlpakaBackendTask : DefaultTask() {
 			signature = signature,
 		)
 
+		val apkFile = apk.get()
+		val webIconFile = webIcon.get()
+
+		logger.lifecycle("apk file: ${apkFile.relativeTo(project.rootDir).path} (${apkFile.length() / 1024} kB)")
+		logger.lifecycle("icon file: ${webIconFile.relativeTo(project.rootDir).path} (${webIconFile.length() / 1024} kB)")
+		logger.lifecycle("metadata:\n${uploadRequest.prettyPrint().prependIndent()}")
+
+		if (dryrun) {
+			logger.lifecycle("Dry-run completed.")
+			return
+		}
+
 		logger.lifecycle("Starting upload to Alpaka.")
 		try {
 			val backendRepository = BackendRepository()
-			backendRepository.appsUpload(uploadRequest, apk.get(), webIcon.get(), uploadKey)
+			backendRepository.appsUpload(uploadRequest, apkFile, webIconFile, uploadKey)
 			logger.lifecycle("Upload to Alpaka successful.")
 		} catch (e: Exception) {
 			val message = if (e is HttpException) {

@@ -61,7 +61,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			buildConfigField("String", "BRANCH", "\"$buildBranch\"")
 		}
 
-		//specify extra properties per flavor and defaultConfig for groovy dsl
+		// Specify extra properties per flavor and defaultConfig for groovy dsl
 		(androidExtension.defaultConfig as ExtensionAware).apply {
 			extraProperties.set("launcherIconLabel", null)
 			extraProperties.set("alpakaUploadKey", null)
@@ -198,6 +198,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 						changelog = "", // Will be set inside the task
 						signature = "", // Will be set inside the task
 						version = versionName,
+						versionCode = variant.versionCode.toLong()
 					)
 					uploadTask.uploadRequest = uploadRequest
 

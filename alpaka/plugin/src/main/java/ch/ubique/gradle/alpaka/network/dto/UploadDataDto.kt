@@ -9,6 +9,7 @@ data class UploadDataDto(
 	val packageName: String,
 	val flavor: String,
 	val version: String,
+	val versionCode: Long,
 	val signature: String,
 	val minSdk: Int,
 	val targetSdk: Int,

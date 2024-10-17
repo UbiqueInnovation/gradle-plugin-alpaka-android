@@ -2,7 +2,7 @@
 
 [![Build](https://github.com/UbiqueInnovation/gradle-plugin-alpaka-android/actions/workflows/build.yml/badge.svg)](https://github.com/UbiqueInnovation/gradle-plugin-alpaka-android/actions/workflows/build.yml)
 [![Release](https://github.com/UbiqueInnovation/gradle-plugin-alpaka-android/actions/workflows/publish.yml/badge.svg)](https://github.com/UbiqueInnovation/gradle-plugin-alpaka-android/actions/workflows/publish.yml)
-[![Maven Central](https://img.shields.io/maven-central/v/ch.ubique.gradle/alpaka.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22ch.ubique.gradle%22%20AND%20a:%22alpaka%22)
+[![Maven Central](https://img.shields.io/maven-central/v/ch.ubique.gradle/alpaka.svg?label=Maven%20Central)](https://search.maven.org/artifact/ch.ubique.gradle/alpaka)
 
 Upload your app to the Alpaka App Distribution, label your launcher icon with some flavors, and have some build metadata in the BuildConfig and the Android manifest.
 

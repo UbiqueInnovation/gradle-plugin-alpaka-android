@@ -149,6 +149,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 				project.tasks.named("map${variantName.capitalize()}SourceSetPaths") { it.dependsOn(iconTask) }
 				project.tasks.named("generate${variantName.capitalize()}Resources") { it.dependsOn(iconTask) }
+				project.tasks.matching { it.name == "extract${variantName.capitalize()}SupportedLocales" }
+					.configureEach { it.dependsOn(iconTask) }
 				variant.outputs.forEach { output ->
 					iconTask.dependsOn(output.processManifestProvider)
 				}

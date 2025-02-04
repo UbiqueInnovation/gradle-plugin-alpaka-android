@@ -238,8 +238,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 	}
 
 	private fun getLauncherIconLabel(applicationVariant: ApplicationVariant, androidExtension: AppExtension): String? {
-		val productFlavor = applicationVariant.productFlavors.firstOrNull()
-		return productFlavor?.flavorLauncherIconLabel ?: androidExtension.defaultConfig.launcherIconLabel
+		return applicationVariant.productFlavors.firstNotNullOfOrNull { it.flavorLauncherIconLabel }
+			?: androidExtension.defaultConfig.launcherIconLabel
 	}
 
 }

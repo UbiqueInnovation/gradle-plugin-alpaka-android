@@ -1,5 +1,4 @@
 import com.vanniktech.maven.publish.GradlePublishPlugin
-import com.vanniktech.maven.publish.SonatypeHost
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
@@ -36,7 +35,6 @@ java {
 
 tasks.withType<KotlinCompile> {
 	compilerOptions.jvmTarget = JvmTarget.JVM_17
-	kotlinOptions.jvmTarget = JavaVersion.VERSION_17.toString()
 }
 
 gradlePlugin {
@@ -52,7 +50,7 @@ gradlePlugin {
 mavenPublishing {
 	configure(GradlePublishPlugin())
 	coordinates(property("GROUP").toString(), property("ARTIFACT_ID").toString(), project.version.toString())
-	publishToMavenCentral(SonatypeHost.S01, true)
+	publishToMavenCentral(true)
 	signAllPublications()
 }
 

@@ -4,7 +4,7 @@ package ch.ubique.gradle.alpaka.task
 
 import ch.ubique.gradle.alpaka.extensions.getResDirs
 import ch.ubique.gradle.alpaka.extensions.prettyPrint
-import ch.ubique.gradle.alpaka.model.UploadRequest
+import ch.ubique.gradle.alpaka.model.AppMetadata
 import ch.ubique.gradle.alpaka.network.BackendRepository
 import ch.ubique.gradle.alpaka.network.OkHttpInstance
 import ch.ubique.gradle.alpaka.utils.GitUtils
@@ -54,7 +54,7 @@ abstract class UploadToAlpakaBackendTask : DefaultTask() {
 	abstract var commitCount: Int?
 
 	@get:Input
-	abstract var uploadRequest: UploadRequest
+	abstract var uploadRequest: AppMetadata
 
 	@get:InputFile
 	abstract var mergedManifestFile: Provider<File>
@@ -118,7 +118,7 @@ abstract class UploadToAlpakaBackendTask : DefaultTask() {
 		}
 	}
 
-	private fun updateUploadRequestWithManifestInformation(): UploadRequest {
+	private fun updateUploadRequestWithManifestInformation(): AppMetadata {
 		val manifestFile = mergedManifestFile.get()
 		val resDirs = project.getResDirs(flavor)
 

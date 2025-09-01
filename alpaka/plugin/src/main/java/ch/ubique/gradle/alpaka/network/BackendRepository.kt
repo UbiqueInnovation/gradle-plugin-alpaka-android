@@ -1,7 +1,7 @@
 package ch.ubique.gradle.alpaka.network
 
 import ch.ubique.gradle.alpaka.extensions.toJson
-import ch.ubique.gradle.alpaka.model.UploadRequest
+import ch.ubique.gradle.alpaka.model.AppMetadata
 import ch.ubique.gradle.alpaka.network.moshi.MoshiBuilder
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody
@@ -29,7 +29,7 @@ class BackendRepository {
 			try {
 				val httpClient = OkHttpInstance.getPreconfiguredClient()
 				_service = Retrofit.Builder()
-					.baseUrl("https://linth-ws.ubique.ch/v1/") // TODO Update base url to Alpaka once backend is migrated
+					.baseUrl("https://alpaka.ubique.ch/v1/")
 					.addConverterFactory(ScalarsConverterFactory.create())
 					.client(httpClient)
 					.build()
@@ -44,7 +44,7 @@ class BackendRepository {
 		resetService()
 	}
 
-	fun appsUpload(uploadRequest: UploadRequest, apk: File, appIcon: File, uploadKey: String) {
+	fun appsUpload(uploadRequest: AppMetadata, apk: File, appIcon: File, uploadKey: String) {
 		val data = MoshiBuilder.createMoshi()
 			.toJson(uploadRequest.toUploadDataJson(uploadKey = uploadKey))
 			.toByteArray()

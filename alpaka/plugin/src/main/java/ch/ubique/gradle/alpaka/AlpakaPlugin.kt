@@ -7,7 +7,7 @@ import ch.ubique.gradle.alpaka.extensions.capitalize
 import ch.ubique.gradle.alpaka.extensions.getMergedManifestFile
 import ch.ubique.gradle.alpaka.extensions.listFilesOrEmpty
 import ch.ubique.gradle.alpaka.extensions.productflavor.alpakaUploadKey
-import ch.ubique.gradle.alpaka.model.UploadRequest
+import ch.ubique.gradle.alpaka.model.AppMetadata
 import ch.ubique.gradle.alpaka.task.IconTask
 import ch.ubique.gradle.alpaka.task.InjectMetadataIntoManifestTask
 import ch.ubique.gradle.alpaka.task.UploadToAlpakaBackendTask
@@ -159,6 +159,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 		// Hook uploadTask into android build process
 		project.afterEvaluate {
+			// compileAlpakaMetadata{$variant} task to compile alpaka mata data
 			androidExtension.applicationVariants.configureEach { variant ->
 				val variantName = variant.name
 				val flavor = variant.flavorName
@@ -172,8 +173,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				val versionName = requireNotNull(androidExtension.defaultConfig.versionName)
 
 				project.tasks.register(
-					"uploadToAlpaka${variantName.capitalize()}",
-					UploadToAlpakaBackendTask::class.java
+					"compileAlpakaMetadata${variantName.capitalize()}",
+					UploadToAlpakaBackendTask::class.java // TODO
 				) { uploadTask ->
 					uploadTask.variant = variant
 					uploadTask.flavor = flavor
@@ -185,7 +186,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					uploadTask.proxy = pluginExtension.proxy.orNull
 					uploadTask.commitCount = pluginExtension.changelogCommitCount.orNull
 
-					val uploadRequest = UploadRequest(
+					// TODO: extract to separate task class like UploadToAlpakaBackendTask and compete all fields there
+					val uploadRequest = AppMetadata(
 						appName = "", // Will be set from manifest inside the task
 						packageName = packageName,
 						flavor = flavor,
@@ -203,8 +205,53 @@ abstract class AlpakaPlugin : Plugin<Project> {
 						versionCode = variant.versionCode.toLong()
 					)
 					uploadTask.uploadRequest = uploadRequest
+					// TODO: save json file
 
 					uploadTask.dependsOn("assemble${variantName.capitalize()}")
+				}
+			}
+
+			// publishToAlpaka{$variant} task to only publish to alpaka
+			androidExtension.applicationVariants.configureEach { variant ->
+				val variantName = variant.name
+				val buildType = variant.buildType.name
+				if (buildType != "release") return@configureEach
+				project.tasks.register(
+					"publishToAlpaka${variantName.capitalize()}",
+					UploadToAlpakaBackendTask::class.java // TODO
+				) { uploadTask ->
+					// TODO: do upload of precompiled data
+				}
+			}
+
+			// {$variant} task to assemble and publish to alpaka
+			androidExtension.applicationVariants.configureEach { variant ->
+				val variantName = variant.name
+				val buildType = variant.buildType.name
+				if (buildType != "release") return@configureEach
+				project.tasks.register("assembleAndPublishToAlpaka${variantName.capitalize()}") { assembleAndPublishTask ->
+					assembleAndPublishTask.group = "alpaka"
+					val assembleTaskName = "assemble${variantName.capitalize()}"
+					val publishToAlpakaTaskName = "publishToAlpaka${variantName.capitalize()}"
+					assembleAndPublishTask.dependsOn(assembleTaskName, publishToAlpakaTaskName)
+					project.tasks.named(publishToAlpakaTaskName) { publishTask ->
+						publishTask.mustRunAfter(assembleTaskName)
+					}
+				}
+			}
+
+			// uploadToAlpaka{$variant} deprecated task to assemble and publish to alpaka, kept for backwards compatibility reasons
+			androidExtension.applicationVariants.configureEach { variant ->
+				val variantName = variant.name
+				val buildType = variant.buildType.name
+				if (buildType != "release") return@configureEach
+				project.tasks.register("uploadToAlpaka${variantName.capitalize()}") { uploadTask ->
+					val assembleAndPublishToAlpakaTaskName = "assembleAndPublishToAlpaka${variantName.capitalize()}"
+					uploadTask.description = "deprecated, use $assembleAndPublishToAlpakaTaskName instead"
+					uploadTask.dependsOn(assembleAndPublishToAlpakaTaskName)
+					uploadTask.doFirst {
+						uploadTask.logger.warn("Task '${uploadTask.name}' is deprecated. Use '$assembleAndPublishToAlpakaTaskName' instead.")
+					}
 				}
 			}
 		}

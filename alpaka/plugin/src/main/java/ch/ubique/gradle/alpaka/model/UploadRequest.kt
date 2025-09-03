@@ -18,6 +18,7 @@ data class UploadRequest(
 	val signature: String,
 	val version: String,
 	val versionCode: Long,
+	val commitHash: String?,
 ) {
 
 	fun toUploadDataJson(uploadKey: String) = UploadDataDto(
@@ -37,6 +38,7 @@ data class UploadRequest(
 		buildNumber = buildNumber,
 		buildTime = buildTime,
 		buildBatch = buildBatch,
+		commitHash = commitHash,
 	)
 
 }

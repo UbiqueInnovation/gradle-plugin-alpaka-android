@@ -49,6 +49,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		// The build branch is the Git name of the branch
 		val buildBranch = project.findProperty("branch")?.toString() ?: GitUtils.obtainBranch(project)
 
+		val commitHash = project.findProperty("commitHash")?.toString()
+
 		// Enable BuildConfig
 		androidExtension.buildFeatures.buildConfig = true
 
@@ -200,7 +202,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 						changelog = "", // Will be set inside the task
 						signature = "", // Will be set inside the task
 						version = versionName,
-						versionCode = variant.versionCode.toLong()
+						versionCode = variant.versionCode.toLong(),
+						commitHash = commitHash,
 					)
 					uploadTask.uploadRequest = uploadRequest
 

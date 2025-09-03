@@ -20,4 +20,5 @@ data class UploadDataDto(
 	val buildNumber: Long,
 	val buildTime: Long,
 	val buildBatch: String,
+	val commitHash: String?,
 )

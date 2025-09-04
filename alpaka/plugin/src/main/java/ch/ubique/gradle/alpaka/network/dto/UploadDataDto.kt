@@ -15,6 +15,7 @@ data class UploadDataDto(
 	val targetSdk: Int,
 	val usesFeature: List<String>,
 	val branch: String,
+	val commitHash: String?,
 	val changelog: String,
 	val buildId: String,
 	val buildNumber: Long,

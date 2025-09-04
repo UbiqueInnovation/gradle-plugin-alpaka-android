@@ -16,13 +16,14 @@ data class AppMetadata(
 	val buildNumber: Long,
 	val buildTime: Long,
 	val buildBatch: String,
+	val commitHash: String?,
 	val changelog: String,
 	val signature: String,
 	val version: String,
 	val versionCode: Long,
 ) {
 
-	fun toUploadDataJson(uploadKey: String) = UploadDataDto(
+	fun toUploadDataDto(uploadKey: String) = UploadDataDto(
 		uploadKey = uploadKey,
 		name = appName,
 		packageName = packageName,
@@ -34,6 +35,7 @@ data class AppMetadata(
 		targetSdk = targetSdk,
 		usesFeature = usesFeature,
 		branch = branch,
+		commitHash = commitHash,
 		changelog = changelog,
 		buildId = buildId,
 		buildNumber = buildNumber,

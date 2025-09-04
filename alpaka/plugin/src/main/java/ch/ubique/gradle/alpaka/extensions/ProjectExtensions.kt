@@ -20,7 +20,7 @@ fun Project.getResDirs(flavor: String): List<File> {
 		.asSequence()
 		.flatMap { it.dependencies }
 		.filterIsInstance<ProjectDependency>()
-		.map { it.dependencyProject }
+		.map { project(it.path) }
 		.distinct()
 		.mapNotNull { it.extensions.findByType(BaseExtension::class.java) }
 		.toList()

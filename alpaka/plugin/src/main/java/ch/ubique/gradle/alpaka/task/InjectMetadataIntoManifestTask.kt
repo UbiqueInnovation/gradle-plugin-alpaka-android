@@ -72,7 +72,6 @@ abstract class InjectMetadataIntoManifestTask : DefaultTask() {
 	 * Add custom meta data to manifest.
 	 * @param manifestFile
 	 */
-
 	private fun manipulateManifestFile(manifestFile: File) {
 		// read manifest file
 		var manifestContent = manifestFile.readText(Charsets.UTF_8)

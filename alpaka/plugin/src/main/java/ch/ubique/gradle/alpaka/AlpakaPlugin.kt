@@ -20,14 +20,24 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.launcherIconLabel
+import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import java.io.File
 import ch.ubique.gradle.alpaka.extensions.productflavor.launcherIconLabel as flavorLauncherIconLabel
 
 abstract class AlpakaPlugin : Plugin<Project> {
 
-	@Suppress("DefaultLocale")
+	companion object {
+		private val MIN_GRADLE_VERSION = GradleVersion.version("8.11")
+	}
+
 	override fun apply(project: Project) {
+		GradleVersion.current().let { current ->
+			if (current < MIN_GRADLE_VERSION) {
+				throw GradleException("Alpaka requires at least Gradle ${MIN_GRADLE_VERSION.version}. Currently ${current.version}.")
+			}
+		}
+
 		val pluginExtension = project.extensions.create("alpaka", AlpakaPluginConfig::class.java, project)
 		val androidExtension = getAndroidExtension(project)
 

@@ -75,11 +75,12 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		project.afterEvaluate {
 			androidExtension.applicationVariants.configureEach { variant ->
 				val variantName = variant.name
+				val variantNameCapitalized = variantName.capitalize()
 				val flavor = variant.flavorName
 				val buildType = variant.buildType.name
 
 				val injectManifestTask = project.tasks.register(
-					"injectMetadataIntoManifest${variantName.capitalize()}",
+					"injectMetadataIntoManifest$variantNameCapitalized",
 					InjectMetadataIntoManifestTask::class.java
 				) { manifestTask ->
 					val mergedManifestFile = project.getMergedManifestFile(variantName)
@@ -98,10 +99,10 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				variant.outputs.forEach { output ->
 					output.processManifestProvider.configure { it.finalizedBy(injectManifestTask) }
 				}
-				project.tasks.named("process${variantName.capitalize()}ManifestForPackage") {
+				project.tasks.named("process${variantNameCapitalized}ManifestForPackage") {
 					it.dependsOn(injectManifestTask)
 				}
-				project.tasks.named("processApplicationManifest${variantName.capitalize()}ForBundle") {
+				project.tasks.named("processApplicationManifest${variantNameCapitalized}ForBundle") {
 					it.dependsOn(injectManifestTask)
 				}
 			}
@@ -114,11 +115,11 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		}
 
 		project.afterEvaluate {
-			// hook labelAppIcon task into android build process
+			// Hook labelAppIcon task into android build process
 			val doLabelAppIcons = pluginExtension.labelAppIcons.getOrElse(true)
-
 			androidExtension.applicationVariants.configureEach { variant ->
 				val variantName = variant.name
+				val variantNameCapitalized = variantName.capitalize()
 				val flavor = variant.flavorName
 				val buildType = variant.buildType.name
 				val labelValue = getLauncherIconLabel(variant, androidExtension)
@@ -131,7 +132,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				}
 
 				val launcherIconLabelTask = project.tasks.register(
-					"labelAppIcon${variantName.capitalize()}",
+					"labelAppIcon$variantNameCapitalized",
 					LauncherIconLabelTask::class.java
 				) { iconTask ->
 					iconTask.variantName = variantName
@@ -144,19 +145,19 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					iconTask.generatedIconDir = getGeneratedIconDir(project.layout.buildDirectory, flavor, buildType)
 					iconTask.outputs.upToDateWhen { false } // always run the task
 
-					iconTask.mustRunAfter(project.tasks.named("injectMetadataIntoManifest${variantName.capitalize()}"))
+					iconTask.mustRunAfter(project.tasks.named("injectMetadataIntoManifest$variantNameCapitalized"))
 				}
 
-				project.tasks.named("map${variantName.capitalize()}SourceSetPaths") { it.dependsOn(launcherIconLabelTask) }
-				project.tasks.named("generate${variantName.capitalize()}Resources") { it.dependsOn(launcherIconLabelTask) }
-				project.tasks.matching { it.name == "extract${variantName.capitalize()}SupportedLocales" }
+				project.tasks.named("map${variantNameCapitalized}SourceSetPaths") { it.dependsOn(launcherIconLabelTask) }
+				project.tasks.named("generate${variantNameCapitalized}Resources") { it.dependsOn(launcherIconLabelTask) }
+				project.tasks.matching { it.name == "extract${variantNameCapitalized}SupportedLocales" }
 					.configureEach { it.dependsOn(launcherIconLabelTask) }
 				variant.outputs.forEach { output ->
 					launcherIconLabelTask.dependsOn(output.processManifestProvider)
 				}
 			}
 
-			//
+			// Hook alpaka task into android build process
 			androidExtension.applicationVariants.configureEach { variant ->
 				val buildType = variant.buildType.name
 				if (buildType != "release") return@configureEach
@@ -198,11 +199,11 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					uploadTask.webIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavor, buildType)
 					uploadTask.appMetadataJsonFile = getGeneratedAppMetadataFile(project.layout.buildDirectory, flavor, buildType)
 					uploadTask.proxy = pluginExtension.proxy.orNull
-					uploadTask.mustRunAfter(assembleTaskName) // ensure that the assemble task is run before, IF it's run
-					uploadTask.mustRunAfter(metadataTask) // ensure that the assemble task is run before, IF it's run
+					// ensure that the compilation tasks are run before, IF they're run
+					uploadTask.mustRunAfter(assembleTaskName, metadataTask)
 				}
 
-				// {$variant} task to assemble and publish to alpaka
+				// assembleAndPublishToAlpaka{$variant} task to assemble and publish to alpaka
 				val assembleAndPublishToAlpakaTaskName = "assembleAndPublishToAlpaka$variantNameCapitalized"
 				project.tasks.register(
 					assembleAndPublishToAlpakaTaskName,
@@ -212,8 +213,9 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				}
 
 				// uploadToAlpaka{$variant} deprecated task to assemble and publish to alpaka, kept for backwards compatibility reasons
+				val legacyUploadTaskName = "uploadToAlpaka$variantNameCapitalized"
 				project.tasks.register(
-					"uploadToAlpaka$variantNameCapitalized",
+					legacyUploadTaskName,
 					UploadToAlpakaBackendTask::class.java
 				) { uploadTask ->
 					uploadTask.description = "deprecated, use $assembleAndPublishToAlpakaTaskName instead"

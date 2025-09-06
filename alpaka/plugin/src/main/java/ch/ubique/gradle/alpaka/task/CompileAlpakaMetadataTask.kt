@@ -59,7 +59,7 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 	abstract var metadataFile: Provider<File>
 
 	@TaskAction
-	fun uploadAction() {
+	fun compileAction() {
 		val manifestFile = mergedManifestFile.get()
 		val resDirs = project.getResDirs(variant.flavorName)
 

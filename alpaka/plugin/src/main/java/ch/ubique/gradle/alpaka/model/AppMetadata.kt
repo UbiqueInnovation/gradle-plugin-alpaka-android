@@ -1,8 +1,10 @@
 package ch.ubique.gradle.alpaka.model
 
 import ch.ubique.gradle.alpaka.network.dto.UploadDataDto
+import com.squareup.moshi.JsonClass
 
-data class UploadRequest(
+@JsonClass(generateAdapter = true)
+data class AppMetadata(
 	val appName: String,
 	val packageName: String,
 	val flavor: String,
@@ -14,14 +16,14 @@ data class UploadRequest(
 	val buildNumber: Long,
 	val buildTime: Long,
 	val buildBatch: String,
+	val commitHash: String?,
 	val changelog: String,
 	val signature: String,
 	val version: String,
 	val versionCode: Long,
-	val commitHash: String?,
 ) {
 
-	fun toUploadDataJson(uploadKey: String) = UploadDataDto(
+	fun toUploadDataDto(uploadKey: String) = UploadDataDto(
 		uploadKey = uploadKey,
 		name = appName,
 		packageName = packageName,
@@ -33,12 +35,12 @@ data class UploadRequest(
 		targetSdk = targetSdk,
 		usesFeature = usesFeature,
 		branch = branch,
+		commitHash = commitHash,
 		changelog = changelog,
 		buildId = buildId,
 		buildNumber = buildNumber,
 		buildTime = buildTime,
 		buildBatch = buildBatch,
-		commitHash = commitHash,
 	)
 
 }

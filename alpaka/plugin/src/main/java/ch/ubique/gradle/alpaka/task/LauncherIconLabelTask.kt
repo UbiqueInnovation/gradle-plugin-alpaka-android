@@ -10,7 +10,7 @@ import org.gradle.api.tasks.*
 import java.io.File
 
 @CacheableTask
-abstract class IconTask : DefaultTask() {
+abstract class LauncherIconLabelTask : DefaultTask() {
 
 	init {
 		group = "alpaka"

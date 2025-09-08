@@ -9,11 +9,14 @@ object ManifestUtils {
 	 * Finds the app name from specified in the manifest.
 	 */
 	fun findAppName(logger: Logger, resDirs: List<File>, manifest: File): String? {
-		val labelName = findAttributeValue(manifest, "application", "android:label")?.substringAfter("/")
-		if (labelName.isNullOrEmpty()) {
+		val labelValue = findAttributeValue(manifest, "application", "android:label")
+		if (labelValue.isNullOrEmpty()) {
 			logger.warn("<application android:label> not found in manifest")
 			return null
+		} else if (labelValue[0] != '@') {
+			return labelValue
 		}
+		val labelResId = labelValue.substringAfter('/')
 
 		val stringFiles = resDirs.filter { it.exists() }
 			.flatMap { resDir ->
@@ -34,11 +37,11 @@ object ManifestUtils {
 			return null
 		}
 
-		logger.debug("Looking for $labelName in string files: ${stringFiles.joinToString { it.absolutePath }}")
+		logger.debug("Looking for $labelResId in string files: ${stringFiles.joinToString { it.absolutePath }}")
 
 		return stringFiles.firstNotNullOf { file ->
 			val xmlParser = XmlParser(file)
-			xmlParser.findTagValue("string", mapOf("name" to labelName))
+			xmlParser.findTagValue("string", mapOf("name" to labelResId))
 				.takeIf { it.isNullOrEmpty().not() }
 				?.trim('"') // Strip double quotes
 		}

@@ -12,10 +12,11 @@ The plugin contains the following functionality:
 
 * Enables the generation of the `BuildConfig` class
 * Writes build information as fields to the `BuildConfig` class (see section [Build information](#build-information))
-* Registers a task `injectMetadataIntoManifest<VARIANT>` for each variant that injects the build information into the Android
+* Task `injectMetadataIntoManifest<VARIANT>` for each variant that injects the build information into the Android
   manifest
-* Registers a task `labelAppIcon<VARIANT>` for each variant that generates an app icon with the flavor name as overlay
-* Registers a task `uploadToAlpaka<VARIANT>` for each release variant that uploads the APK to the Alpaka backend
+* Task `labelAppIcon<VARIANT>` for each variant that generates an app icon with the flavor name as overlay
+* Task `assembleAndPublishToAlpaka<VARIANT>` for each release variant that builds and uploads the APK to the Alpaka backend
+* Task `publishToAlpaka<VARIANT>` for each release variant that uploads the previously built APK to the Alpaka backend
 
 ## Configuration
 
@@ -47,7 +48,7 @@ android {
 
 alpaka {
     changelogCommitCount = 10 // The number of commits to include in the changelog (optional, defaults to 10)
-    proxy = "host:port" // An optional proxy to set for the upload task. Use for local debugging only 
+    proxy = "host:port" // An optional proxy to set for the upload task.
     labelAppIcons = false // Globally configure the generateAppIcon tasks to label with flavor name (optional, default is enabled)
 }
 ```

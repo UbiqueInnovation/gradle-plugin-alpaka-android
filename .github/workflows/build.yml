@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         module: ["examplekts", "examplegroovy"]
-        task: ["assemble", "uploadToAlpakaTeschtRelease --alpaka-dryrun"]
+        task: ["assemble", "assembleAndPublishToAlpakaTeschtRelease -PalpakaDryrun=true"]
     steps:
       # Checkout repository
       - name: Checkout

@@ -160,6 +160,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 				project.tasks.named("map${variantNameCapitalized}SourceSetPaths") { it.dependsOn(launcherIconLabelTask) }
 				project.tasks.named("generate${variantNameCapitalized}Resources") { it.dependsOn(launcherIconLabelTask) }
+				project.tasks.named("process${variantNameCapitalized}NavigationResources") { it.dependsOn(launcherIconLabelTask) }
 				project.tasks.matching { it.name == "extract${variantNameCapitalized}SupportedLocales" }
 					.configureEach { it.dependsOn(launcherIconLabelTask) }
 				variant.outputs.forEach { output ->

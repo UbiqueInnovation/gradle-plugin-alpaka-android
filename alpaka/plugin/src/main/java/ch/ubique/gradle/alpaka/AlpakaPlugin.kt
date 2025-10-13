@@ -130,7 +130,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			androidExtension.applicationVariants.configureEach { variant ->
 				val variantName = variant.name
 				val variantNameCapitalized = variantName.capitalize()
-				val flavor = variant.flavorName
+				val flavorName = variant.flavorName
+				val productFlavors = variant.productFlavors.map { it.name }
 				val buildType = variant.buildType.name
 				val labelValue = getLauncherIconLabel(variant, androidExtension)
 
@@ -138,7 +139,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					// make sure generated sources are used by build process
 					// Add generated icon path to res-SourceSet. This must be here otherwise it is too late!
 					val sourceSet = androidExtension.sourceSets.maybeCreate(variantName)
-					sourceSet.res.srcDir(getGeneratedIconDir(project.layout.buildDirectory, flavor, buildType))
+					sourceSet.res.srcDir(getGeneratedIconDir(project.layout.buildDirectory, flavorName, buildType))
 				}
 
 				val launcherIconLabelTask = project.tasks.register(
@@ -146,13 +147,14 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					LauncherIconLabelTask::class.java
 				) { iconTask ->
 					iconTask.variantName = variantName
-					iconTask.flavor = flavor
+					iconTask.flavorName = flavorName
+					iconTask.productFlavors = productFlavors
 					iconTask.buildType = buildType
 					iconTask.labelValue = if (doLabelAppIcons) labelValue else null
-					iconTask.sourceWebIconFile = project.provider { findWebIcon(project.projectDir, flavor) }
+					iconTask.sourceWebIconFile = project.provider { findWebIcon(project.projectDir, flavorName) }
 					iconTask.mergedManifestFile = project.getMergedManifestFile(variantName)
-					iconTask.generatedWebIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavor, buildType)
-					iconTask.generatedIconDir = getGeneratedIconDir(project.layout.buildDirectory, flavor, buildType)
+					iconTask.generatedWebIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavorName, buildType)
+					iconTask.generatedIconDir = getGeneratedIconDir(project.layout.buildDirectory, flavorName, buildType)
 					iconTask.outputs.upToDateWhen { false } // always run the task
 
 					iconTask.mustRunAfter(project.tasks.named("injectMetadataIntoManifest$variantNameCapitalized"))

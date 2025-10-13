@@ -21,7 +21,10 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 	abstract var variantName: String
 
 	@get:Input
-	abstract var flavor: String
+	abstract var flavorName: String
+
+	@get:Input
+	abstract var productFlavors: List<String>
 
 	@get:Input
 	abstract var buildType: String
@@ -62,7 +65,8 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 			File(project.rootDir, "gradle/libs.versions.toml").lastModified(),
 		).max()
 
-		val resDirs = project.getResDirs(flavor)
+		val flavorNames = setOf(flavorName) + productFlavors
+		val resDirs = project.getResDirs(flavorNames)
 
 		val allIcons = IconUtils.findIcons(resDirs, mergedManifestFile.get())
 

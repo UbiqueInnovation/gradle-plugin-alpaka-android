@@ -147,8 +147,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					LauncherIconLabelTask::class.java
 				) { iconTask ->
 					iconTask.variantName = variantName
-					iconTask.flavorName = flavorName
-					iconTask.productFlavors = productFlavors
+					iconTask.fullFlavorName = flavorName
+					iconTask.partialFlavorNames = productFlavors
 					iconTask.buildType = buildType
 					iconTask.labelValue = if (doLabelAppIcons) labelValue else null
 					iconTask.sourceWebIconFile = project.provider { findWebIcon(project.projectDir, flavorName) }

@@ -20,8 +20,18 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 	@get:Input
 	abstract var variantName: String
 
+	/**
+	 * The full flavor name, which is the concatenation of all applied product flavors.
+	 */
 	@get:Input
-	abstract var flavor: String
+	abstract var fullFlavorName: String
+
+	/**
+	 * The list of partial flavor names, which are the individual product flavors applied.
+	 * If an app only has a single flavor dimension, this list should contain a single entry which is identical to [fullFlavorName].
+	 */
+	@get:Input
+	abstract var partialFlavorNames: List<String>
 
 	@get:Input
 	abstract var buildType: String
@@ -62,7 +72,8 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 			File(project.rootDir, "gradle/libs.versions.toml").lastModified(),
 		).max()
 
-		val resDirs = project.getResDirs(flavor)
+		val flavorNames = setOf(fullFlavorName) + partialFlavorNames
+		val resDirs = project.getResDirs(flavorNames)
 
 		val allIcons = IconUtils.findIcons(resDirs, mergedManifestFile.get())
 

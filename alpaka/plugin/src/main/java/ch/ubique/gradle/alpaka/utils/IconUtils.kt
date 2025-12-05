@@ -36,9 +36,11 @@ object IconUtils {
 				resDir.walkTopDown().maxDepth(1)
 					.filter { it.isDirectory && (it.name.startsWith("drawable") || it.name.startsWith("mipmap")) }
 					.forEach { dir ->
-						dir.walkTopDown().filter { it.isFile && it.name.matches(Regex(".*$iconName.(png|webp)")) }
+						dir.walkTopDown()
+							.filter { it.isFile && it.name.matches(Regex(".*$iconName.(png|webp)")) }
 							.forEach { result.add(it) }
-						dir.walkTopDown().filter { it.isFile && it.name.matches(Regex(".*${iconName}_foreground.(png|webp|xml)")) }
+						dir.walkTopDown()
+							.filter { it.isFile && it.name.matches(Regex(".*${iconName}_(foreground|monochrome).(png|webp|xml)")) }
 							.forEach { result.add(it) }
 					}
 				if (result.isNotEmpty()) return result
@@ -51,7 +53,7 @@ object IconUtils {
 	/**
 	 * Creates a layered drawable putting the label banner over the launcher icon.
 	 */
-	fun createLayeredLabel(iconFile: File, bannerLabel: String, adaptive: Boolean) {
+	fun createLayeredLabel(iconFile: File, bannerLabel: String, adaptive: Boolean, monochrome: Boolean) {
 		val iconName = iconFile.name.substringBefore(".")
 		val iconExt = iconFile.name.substringAfter(".")
 		val iconNameOverlay = "${iconName}_overlay"
@@ -74,7 +76,7 @@ object IconUtils {
 		val overlayBitmap = createTransparentImage(sourceWidth, sourceHeight)
 
 		// Draw label to upper layer
-		drawLabelOnImage(overlayBitmap, bannerLabel, adaptive)
+		drawLabelOnImage(overlayBitmap, bannerLabel, adaptive, monochrome)
 		ImageIO.write(overlayBitmap, "png", iconOverlayFile)
 
 		// Move iconFile to iconFile-lower-layer
@@ -94,14 +96,14 @@ object IconUtils {
 		layerListFile.writeText(layerListXml)
 	}
 
-	fun drawLabel(sourceFile: File, targetFile: File, label: String, adaptive: Boolean) {
+	fun drawLabel(sourceFile: File, targetFile: File, label: String, adaptive: Boolean, monochrome: Boolean) {
 		val img = ImageIO.read(sourceFile)
-		drawLabelOnImage(img, label, adaptive)
+		drawLabelOnImage(img, label, adaptive, monochrome)
 		val fileExtension = sourceFile.extension
 		ImageIO.write(img, fileExtension, targetFile)
 	}
 
-	private fun drawLabelOnImage(img: BufferedImage, label: String, adaptive: Boolean) {
+	private fun drawLabelOnImage(img: BufferedImage, label: String, adaptive: Boolean, monochrome: Boolean) {
 		val sourceWidth = img.width
 		val sourceHeight = img.height
 		val dp = img.width / 108.0
@@ -124,15 +126,17 @@ object IconUtils {
 		val banner = Rectangle(anchorX - sourceWidth, anchorY - bannerHeight / 2, sourceWidth * 2, bannerHeight)
 
 		// Draw banner shadow
-		val shadow1 = Rectangle(banner).apply { grow(0, (scale * 0.5 * dp).toInt()) }
-		g.color = Color(0, 0, 0, 58)
-		g.fill(shadow1)
+		if (!monochrome) {
+			val shadow1 = Rectangle(banner).apply { grow(0, (scale * 0.5 * dp).toInt()) }
+			g.color = Color(0, 0, 0, 58)
+			g.fill(shadow1)
 
-		val shadow2 = Rectangle(banner).apply { size = Dimension(width, (height + scale * dp).toInt()) }
-		g.fill(shadow2)
+			val shadow2 = Rectangle(banner).apply { size = Dimension(width, (height + scale * dp).toInt()) }
+			g.fill(shadow2)
+		}
 
 		// Draw banner
-		g.color = Color.WHITE
+		g.color = if (monochrome) Color(255, 255, 255, 128) else Color.WHITE
 		g.fill(banner)
 
 		// Set font and calculate size
@@ -143,7 +147,7 @@ object IconUtils {
 		val labelHeight = fontMetrics.ascent - fontMetrics.descent
 		val labelWidth = fontMetrics.stringWidth(label.uppercase())
 
-		g.color = Color.decode("#273c56")
+		g.color = if (monochrome) Color.BLACK else Color.decode("#273c56")
 		g.drawString(label.uppercase(), anchorX - labelWidth / 2, anchorY + labelHeight / 2)
 	}
 
@@ -154,13 +158,5 @@ object IconUtils {
 		g.clearRect(0, 0, width, height)
 		g.dispose()
 		return img
-	}
-
-	/**
-	 * Find the largest launcher icon drawable.
-	 */
-	fun findLargestIcon(iconFiles: List<File>): File? {
-		val filteredIconFiles = iconFiles.filter { !it.name.contains("_foreground") }
-		return filteredIconFiles.maxByOrNull { it.length() }
 	}
 }

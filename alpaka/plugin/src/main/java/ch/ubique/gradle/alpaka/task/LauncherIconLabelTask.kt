@@ -92,7 +92,7 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 		} else {
 			if (webIconSource.olderThan(webIconTarget, gradleLastModified)) {
 				logger.info("Apply banner label to web icon: ${webIconSource.absolutePath}")
-				IconUtils.drawLabel(webIconSource, webIconTarget, bannerLabel, adaptive = false)
+				IconUtils.drawLabel(webIconSource, webIconTarget, bannerLabel, adaptive = false, monochrome = false)
 			}
 
 			allIcons.forEach iconsForEach@{ original ->
@@ -108,7 +108,10 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 					val target = File(targetDir, original.name)
 					targetDir.mkdirs()
 					original.copyTo(target, overwrite = true)
-					IconUtils.createLayeredLabel(target, bannerLabel, originalBaseName.endsWith("_foreground"))
+
+					val isMonochrome = originalBaseName.endsWith("_monochrome")
+					val isAdaptive = originalBaseName.endsWith("_foreground") || isMonochrome
+					IconUtils.createLayeredLabel(target, bannerLabel, isAdaptive, isMonochrome)
 				}
 			}
 		}

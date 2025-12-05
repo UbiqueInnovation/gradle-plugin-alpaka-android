@@ -126,12 +126,14 @@ object IconUtils {
 		val banner = Rectangle(anchorX - sourceWidth, anchorY - bannerHeight / 2, sourceWidth * 2, bannerHeight)
 
 		// Draw banner shadow
-		val shadow1 = Rectangle(banner).apply { grow(0, (scale * 0.5 * dp).toInt()) }
-		g.color = Color(0, 0, 0, 58)
-		g.fill(shadow1)
+		if (!monochrome) {
+			val shadow1 = Rectangle(banner).apply { grow(0, (scale * 0.5 * dp).toInt()) }
+			g.color = Color(0, 0, 0, 58)
+			g.fill(shadow1)
 
-		val shadow2 = Rectangle(banner).apply { size = Dimension(width, (height + scale * dp).toInt()) }
-		g.fill(shadow2)
+			val shadow2 = Rectangle(banner).apply { size = Dimension(width, (height + scale * dp).toInt()) }
+			g.fill(shadow2)
+		}
 
 		// Draw banner
 		g.color = if (monochrome) Color(255, 255, 255, 128) else Color.WHITE

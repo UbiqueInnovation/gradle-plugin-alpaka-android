@@ -6,12 +6,12 @@ plugins {
 
 android {
 	namespace = "com.example.examplekts"
-	compileSdk = 35
+	compileSdk = 36
 
 	defaultConfig {
 		applicationId = "com.example.examplekts"
 		minSdk = 26
-		targetSdk = 35
+		targetSdk = 36
 		versionCode = 1
 		versionName = "1.0"
 
@@ -21,6 +21,9 @@ android {
 	flavorDimensions += "default"
 
 	productFlavors {
+		configureEach {
+			resValue("string", "app_name", "Alpaka Plugin KTS DSL Test App ($name)")
+		}
 		create("dev") {
 			dimension = "default"
 			applicationIdSuffix = ".dev"

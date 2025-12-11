@@ -26,7 +26,6 @@ object ManifestUtils {
 					.mapNotNull { dir ->
 						dir.walkTopDown()
 							.filter { it.isFile && it.name.matches(".*\\.xml".toRegex()) }
-							.sortedByDescending { it.name.contains("strings") }
 							.toList()
 							.takeIf { it.isNotEmpty() }
 					}.flatten()

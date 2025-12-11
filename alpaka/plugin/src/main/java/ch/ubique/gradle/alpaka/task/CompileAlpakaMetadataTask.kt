@@ -61,7 +61,8 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 	@TaskAction
 	fun compileAction() {
 		val manifestFile = mergedManifestFile.get()
-		val resDirs = project.getResDirs(variant.flavorName)
+		val resDirs = project.getResDirs(variant.flavorName) +
+				project.layout.buildDirectory.file("generated/res/resValues/${variant.flavorName}/${variant.buildType.name}").get().asFile
 
 		val appName = ManifestUtils.findAppName(logger, resDirs, manifestFile)
 			?: throw GradleException(

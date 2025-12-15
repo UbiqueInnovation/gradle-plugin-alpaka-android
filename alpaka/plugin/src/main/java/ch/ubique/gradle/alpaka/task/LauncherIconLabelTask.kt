@@ -1,9 +1,9 @@
 package ch.ubique.gradle.alpaka.task
 
-import ch.ubique.gradle.alpaka.extensions.getResDirs
 import ch.ubique.gradle.alpaka.extensions.olderThan
 import ch.ubique.gradle.alpaka.utils.IconUtils
 import org.gradle.api.DefaultTask
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.Directory
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
@@ -20,19 +20,6 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 	@get:Input
 	abstract var variantName: String
 
-	/**
-	 * The full flavor name, which is the concatenation of all applied product flavors.
-	 */
-	@get:Input
-	abstract var fullFlavorName: String
-
-	/**
-	 * The list of partial flavor names, which are the individual product flavors applied.
-	 * If an app only has a single flavor dimension, this list should contain a single entry which is identical to [fullFlavorName].
-	 */
-	@get:Input
-	abstract var partialFlavorNames: List<String>
-
 	@get:Input
 	abstract var buildType: String
 
@@ -48,6 +35,14 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 	@get:PathSensitive(PathSensitivity.RELATIVE)
 	abstract var sourceWebIconFile: Provider<File>
 
+	@get:InputFiles
+	@get:PathSensitive(PathSensitivity.RELATIVE)
+	abstract val resDirs: ConfigurableFileCollection
+
+	@get:InputFiles
+	@get:PathSensitive(PathSensitivity.RELATIVE)
+	abstract val buildLogicFiles: ConfigurableFileCollection
+
 	@get:OutputDirectory
 	abstract var generatedIconDir: Provider<Directory>
 
@@ -62,23 +57,14 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 		}
 		val generatedIconDir = generatedIconDir.get().asFile
 
-		val gradleLastModified = listOf(
-			File(project.projectDir, "build.gradle").lastModified(),
-			File(project.projectDir, "build.gradle.kts").lastModified(),
-			File(project.rootDir, "build.gradle").lastModified(),
-			File(project.rootDir, "build.gradle.kts").lastModified(),
-			File(project.rootDir, "settings.gradle").lastModified(),
-			File(project.rootDir, "settings.gradle.kts").lastModified(),
-			File(project.rootDir, "gradle/libs.versions.toml").lastModified(),
-		).max()
+		val gradleLastModified = buildLogicFiles.files
+			.asSequence()
+			.map { it.lastModified() }
+			.maxOrNull() ?: 0L
 
-		val flavorNames = setOf(fullFlavorName) + partialFlavorNames
-		val resDirs = project.getResDirs(flavorNames)
-
-		val allIcons = IconUtils.findIcons(resDirs, mergedManifestFile.get())
+		val allIcons = IconUtils.findIcons(resDirs.files.toList(), mergedManifestFile.get())
 
 		val webIconSource = sourceWebIconFile.get()
-
 		val bannerLabel = labelValue
 
 		if (bannerLabel.isNullOrEmpty()) {
@@ -115,7 +101,5 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 				}
 			}
 		}
-
 	}
-
 }

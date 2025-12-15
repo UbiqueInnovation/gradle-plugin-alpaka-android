@@ -5,6 +5,7 @@ package ch.ubique.gradle.alpaka
 import ch.ubique.gradle.alpaka.config.AlpakaPluginConfig
 import ch.ubique.gradle.alpaka.extensions.capitalize
 import ch.ubique.gradle.alpaka.extensions.getMergedManifestFile
+import ch.ubique.gradle.alpaka.extensions.getResDirs
 import ch.ubique.gradle.alpaka.extensions.listFilesOrEmpty
 import ch.ubique.gradle.alpaka.extensions.productflavor.alpakaUploadKey
 import ch.ubique.gradle.alpaka.task.*
@@ -147,14 +148,26 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					LauncherIconLabelTask::class.java
 				) { iconTask ->
 					iconTask.variantName = variantName
-					iconTask.fullFlavorName = flavorName
-					iconTask.partialFlavorNames = productFlavors
 					iconTask.buildType = buildType
 					iconTask.labelValue = if (doLabelAppIcons) labelValue else null
 					iconTask.sourceWebIconFile = project.provider { findWebIcon(project.projectDir, flavorName) }
 					iconTask.mergedManifestFile = project.getMergedManifestFile(variantName)
 					iconTask.generatedWebIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavorName, buildType)
 					iconTask.generatedIconDir = getGeneratedIconDir(project.layout.buildDirectory, flavorName, buildType)
+
+					val flavorNames = setOf(flavorName) + productFlavors
+					iconTask.resDirs.from(project.getResDirs(flavorNames))
+
+					iconTask.buildLogicFiles.from(
+						project.file("build.gradle"),
+						project.file("build.gradle.kts"),
+						project.rootProject.file("build.gradle"),
+						project.rootProject.file("build.gradle.kts"),
+						project.rootProject.file("settings.gradle"),
+						project.rootProject.file("settings.gradle.kts"),
+						project.rootProject.file("gradle/libs.versions.toml"),
+					)
+
 					iconTask.outputs.upToDateWhen { false } // always run the task
 
 					iconTask.mustRunAfter(project.tasks.named("injectMetadataIntoManifest$variantNameCapitalized"))

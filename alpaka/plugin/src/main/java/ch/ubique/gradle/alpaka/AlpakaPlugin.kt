@@ -72,7 +72,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			buildConfigField("String", "BUILD_ID", "\"$buildId\"")
 			buildConfigField("long", "BUILD_NUMBER", "${buildNumber}L")
 			buildConfigField("long", "BUILD_TIMESTAMP", "${buildTimestamp}L")
-			buildConfigField("String", "BRANCH", "\"${vcsBranch}\"")
+			buildConfigField("String", "BRANCH", "\"$vcsBranch\"")
 		}
 
 		// Specify extra properties per flavor and defaultConfig for groovy dsl
@@ -242,6 +242,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					uploadTask.webIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavor, buildType)
 					uploadTask.appMetadataJsonFile = getGeneratedAppMetadataFile(project.layout.buildDirectory, flavor, buildType)
 					uploadTask.proxy = pluginExtension.proxy.orNull
+					uploadTask.dryrun = project.findProperty("alpakaDryrun")?.toString()?.toBoolean() ?: false
 					// ensure that the compilation tasks are run before, IF they're run
 					uploadTask.mustRunAfter(assembleTaskName, metadataTask)
 				}
@@ -252,6 +253,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					assembleAndPublishToAlpakaTaskName,
 					AssembleAndPublishToAlpakaTask::class.java
 				) { assembleAndPublishTask ->
+					assembleAndPublishTask.dryrun = project.findProperty("alpakaDryrun")?.toString()?.toBoolean() ?: false
 					assembleAndPublishTask.dependsOn(assembleTaskName, publishToAlpakaTaskName)
 				}
 

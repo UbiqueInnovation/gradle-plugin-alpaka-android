@@ -45,8 +45,9 @@ abstract class PublishToAlpakaTask : DefaultTask() {
 	abstract var webIcon: Provider<File>
 
 	@get:Input
-	val dryrun: Boolean
-		get() = project.findProperty("alpakaDryrun")?.toString()?.toBoolean() ?: false
+	abstract var dryrun: Boolean
+
+	private var projectRootDir = project.rootDir
 
 	@TaskAction
 	fun uploadAction() {
@@ -63,8 +64,8 @@ abstract class PublishToAlpakaTask : DefaultTask() {
 
 		val appMetadata = moshi().fromJsonNotNull<AppMetadata>(appMetadataJsonFile.get().readText())
 
-		logger.lifecycle("apk file: ${apkFile.relativeTo(project.rootDir).path} (${apkFile.length() / 1024} kB)")
-		logger.lifecycle("icon file: ${webIconFile.relativeTo(project.rootDir).path} (${webIconFile.length() / 1024} kB)")
+		logger.lifecycle("apk file: ${apkFile.relativeTo(projectRootDir).path} (${apkFile.length() / 1024} kB)")
+		logger.lifecycle("icon file: ${webIconFile.relativeTo(projectRootDir).path} (${webIconFile.length() / 1024} kB)")
 		logger.lifecycle("metadata:\n${appMetadata.prettyPrint().prependIndent()}")
 
 		try {

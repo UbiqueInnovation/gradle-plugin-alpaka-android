@@ -8,8 +8,11 @@ import ch.ubique.gradle.alpaka.extensions.getMergedManifestFile
 import ch.ubique.gradle.alpaka.extensions.getResDirs
 import ch.ubique.gradle.alpaka.extensions.listFilesOrEmpty
 import ch.ubique.gradle.alpaka.extensions.productflavor.alpakaUploadKey
+import ch.ubique.gradle.alpaka.git.GitBranchValueSource
+import ch.ubique.gradle.alpaka.git.GitCommitLogValueSource
+import ch.ubique.gradle.alpaka.model.AndroidBuildConfigData
 import ch.ubique.gradle.alpaka.task.*
-import ch.ubique.gradle.alpaka.utils.GitUtils
+import ch.ubique.gradle.alpaka.utils.SigningConfigUtils
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.internal.tasks.factory.dependsOn
@@ -55,7 +58,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		val buildTimestamp = project.findProperty("build_timestamp")?.toString()?.toLongOrNull() ?: System.currentTimeMillis()
 
 		// The build branch is the Git name of the branch
-		val vcsBranch = project.findProperty("branch")?.toString() ?: GitUtils.obtainBranch(project)
+		val vcsBranch = project.findProperty("branch")?.toString() ?: project.getGitBranchProvider().get()
 
 		// The build commit hash is the Git hash of the commit
 		val vcsCommitHash = project.findProperty("commitHash")?.toString()
@@ -69,7 +72,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			buildConfigField("String", "BUILD_ID", "\"$buildId\"")
 			buildConfigField("long", "BUILD_NUMBER", "${buildNumber}L")
 			buildConfigField("long", "BUILD_TIMESTAMP", "${buildTimestamp}L")
-			buildConfigField("String", "BRANCH", "\"$vcsBranch\"")
+			buildConfigField("String", "BRANCH", "\"${vcsBranch}\"")
 		}
 
 		// Specify extra properties per flavor and defaultConfig for groovy dsl
@@ -200,10 +203,24 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					"compileAlpakaMetadata$variantNameCapitalized",
 					CompileAlpakaMetadataTask::class.java
 				) { metadataTask ->
-					metadataTask.androidConfig = androidExtension.defaultConfig
-					metadataTask.variant = variant
+					metadataTask.flavorName = variant.flavorName
+					metadataTask.androidConfig = AndroidBuildConfigData(
+						minSdk = requireNotNull(androidExtension.defaultConfig.minSdk),
+						targetSdk = requireNotNull(androidExtension.defaultConfig.targetSdk),
+						versionName = requireNotNull(androidExtension.defaultConfig.versionName),
+						versionCode = androidExtension.defaultConfig.versionCode?.toLong() ?: 0L,
+						applicationId = variant.applicationId,
+					)
+					val signature = variant.signingConfig?.let { SigningConfigUtils(project.logger).getSignature(it) ?: "invalid" }
+					metadataTask.signature = signature
+
+					val resDirs = project.getResDirs(variant.flavorName) +
+							project.layout.buildDirectory.file("generated/res/resValues/${variant.flavorName}/${variant.buildType.name}").get().asFile
+					metadataTask.resDirs.from(resDirs)
+
 					metadataTask.mergedManifestFile = project.getMergedManifestFile(variantName)
-					metadataTask.vcsCommitCount = pluginExtension.changelogCommitCount.orNull
+					val commitCount = pluginExtension.changelogCommitCount.orElse(10).get()
+					metadataTask.vcsCommitHistory = project.getGitCommitLogProvider(commitCount).get()
 					metadataTask.vcsBranch = vcsBranch
 					metadataTask.vcsCommitHash = vcsCommitHash
 					metadataTask.buildId = buildId
@@ -258,6 +275,19 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		val ext = project.extensions.findByType(AppExtension::class.java)
 			?: throw GradleException("Android gradle plugin extension has not been applied before")
 		return ext
+	}
+
+	private fun Project.getGitBranchProvider(): Provider<String> {
+		return project.providers.of(GitBranchValueSource::class.java) {
+			it.parameters.projectDirProvider = project.provider { project.rootProject.projectDir }
+		}
+	}
+
+	private fun Project.getGitCommitLogProvider(numOfCommits: Int): Provider<String> {
+		return project.providers.of(GitCommitLogValueSource::class.java) {
+			it.parameters.projectDirProvider = project.provider { project.rootProject.projectDir }
+			it.parameters.numOfCommits = project.provider { numOfCommits }
+		}
 	}
 
 	private fun findWebIcon(moduleDir: File, flavor: String): File {

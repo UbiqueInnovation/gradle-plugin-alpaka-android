@@ -48,7 +48,7 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 	abstract var buildBatch: String
 
 	@get:Input
-	abstract var buildTime: Long
+	abstract var buildTime: Provider<Long>
 
 	@get:InputFiles
 	@get:PathSensitive(PathSensitivity.RELATIVE)
@@ -85,7 +85,7 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 			usesFeature = usesFeatures,
 			buildId = buildId,
 			buildNumber = buildNumber,
-			buildTime = buildTime,
+			buildTime = buildTime.get(),
 			buildBatch = buildBatch,
 			commitHash = vcsCommitHash,
 			changelog = vcsCommitHistory.get(),

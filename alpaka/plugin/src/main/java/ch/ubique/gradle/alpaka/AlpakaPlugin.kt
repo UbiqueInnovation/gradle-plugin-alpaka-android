@@ -8,9 +8,10 @@ import ch.ubique.gradle.alpaka.extensions.getMergedManifestFile
 import ch.ubique.gradle.alpaka.extensions.getResDirs
 import ch.ubique.gradle.alpaka.extensions.listFilesOrEmpty
 import ch.ubique.gradle.alpaka.extensions.productflavor.alpakaUploadKey
-import ch.ubique.gradle.alpaka.git.GitBranchValueSource
-import ch.ubique.gradle.alpaka.git.GitCommitLogValueSource
 import ch.ubique.gradle.alpaka.model.AndroidBuildConfigData
+import ch.ubique.gradle.alpaka.sources.BuildTimestampValueSource
+import ch.ubique.gradle.alpaka.sources.GitBranchValueSource
+import ch.ubique.gradle.alpaka.sources.GitCommitLogValueSource
 import ch.ubique.gradle.alpaka.task.*
 import ch.ubique.gradle.alpaka.utils.SigningConfigUtils
 import com.android.build.gradle.AppExtension
@@ -55,7 +56,11 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		val buildBatch = project.findProperty("build_batch")?.toString() ?: "0"
 
 		// The build timestamp is the timestamp when the build was started
-		val buildTimestamp = project.findProperty("build_timestamp")?.toString()?.toLongOrNull() ?: System.currentTimeMillis()
+		val buildTimestampProvider = project.findProperty("build_timestamp")
+			?.toString()
+			?.toLongOrNull()
+			?.let { project.provider { it } }
+			?: project.getBuildTimestampProvider()
 
 		// The build branch is the Git name of the branch
 		val vcsBranchProvider = project.findProperty("branch")
@@ -74,7 +79,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			buildConfigField("String", "BUILD_BATCH", "\"$buildBatch\"")
 			buildConfigField("String", "BUILD_ID", "\"$buildId\"")
 			buildConfigField("long", "BUILD_NUMBER", "${buildNumber}L")
-			buildConfigField("long", "BUILD_TIMESTAMP", "${buildTimestamp}L")
+			buildConfigField("long", "BUILD_TIMESTAMP", "${buildTimestampProvider.get()}L")
 			buildConfigField("String", "BRANCH", "\"${vcsBranchProvider.get()}\"")
 		}
 
@@ -108,7 +113,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					manifestTask.buildId = buildId
 					manifestTask.buildNumber = buildNumber
 					manifestTask.buildBatch = buildBatch
-					manifestTask.buildTimestamp = buildTimestamp
+					manifestTask.buildTimestamp = buildTimestampProvider
 					manifestTask.buildBranch = vcsBranchProvider
 					manifestTask.outputs.file(mergedManifestFile)
 				}
@@ -230,7 +235,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					metadataTask.vcsCommitHash = vcsCommitHash
 					metadataTask.buildId = buildId
 					metadataTask.buildNumber = buildNumber
-					metadataTask.buildTime = buildTimestamp
+					metadataTask.buildTime = buildTimestampProvider
 					metadataTask.buildBatch = buildBatch
 					metadataTask.metadataFile = getGeneratedAppMetadataFile(project.layout.buildDirectory, flavor, buildType)
 				}
@@ -282,6 +287,10 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		val ext = project.extensions.findByType(AppExtension::class.java)
 			?: throw GradleException("Android gradle plugin extension has not been applied before")
 		return ext
+	}
+
+	private fun Project.getBuildTimestampProvider(): Provider<Long> {
+		return project.providers.of(BuildTimestampValueSource::class.java) {}
 	}
 
 	private fun Project.getGitBranchProvider(): Provider<String> {

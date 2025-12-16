@@ -1,4 +1,4 @@
-package ch.ubique.gradle.alpaka.git
+package ch.ubique.gradle.alpaka.utils
 
 import java.io.BufferedReader
 import java.io.File

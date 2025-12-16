@@ -1,5 +1,6 @@
-package ch.ubique.gradle.alpaka.git
+package ch.ubique.gradle.alpaka.sources
 
+import ch.ubique.gradle.alpaka.utils.GitUtils
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ValueSource
 import org.gradle.api.provider.ValueSourceParameters

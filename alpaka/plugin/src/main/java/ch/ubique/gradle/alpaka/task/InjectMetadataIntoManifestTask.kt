@@ -48,7 +48,7 @@ abstract class InjectMetadataIntoManifestTask : DefaultTask() {
 	abstract var buildTimestamp: Long
 
 	@get:Input
-	abstract var buildBranch: String
+	abstract var buildBranch: Provider<String>
 
 	@get:InputFile
 	abstract var mergedManifestFile: Provider<File>
@@ -81,7 +81,7 @@ abstract class InjectMetadataIntoManifestTask : DefaultTask() {
 		manifestContent = addMetadata(manifestContent, METADATA_KEY_BUILD_ID, buildId)
 		manifestContent = addMetadata(manifestContent, METADATA_KEY_BUILD_NUMBER, buildNumber.toString())
 		manifestContent = addMetadata(manifestContent, METADATA_KEY_BUILD_TIMESTAMP, buildTimestamp.toString())
-		manifestContent = addMetadata(manifestContent, METADATA_KEY_BRANCH, buildBranch)
+		manifestContent = addMetadata(manifestContent, METADATA_KEY_BRANCH, buildBranch.get())
 		manifestContent = addMetadata(manifestContent, METADATA_KEY_FLAVOR, flavor)
 
 		// store modified manifest

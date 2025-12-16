@@ -29,10 +29,10 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 	abstract var signature: String?
 
 	@get:Input
-	abstract var vcsCommitHistory: String
+	abstract var vcsCommitHistory: Provider<String>
 
 	@get:Input
-	abstract var vcsBranch: String
+	abstract var vcsBranch: Provider<String>
 
 	@get:Input
 	@get:Optional
@@ -79,7 +79,7 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 			appName = appName,
 			packageName = androidConfig.applicationId,
 			flavor = flavorName,
-			branch = vcsBranch,
+			branch = vcsBranch.get(),
 			minSdk = androidConfig.minSdk,
 			targetSdk = androidConfig.targetSdk,
 			usesFeature = usesFeatures,
@@ -88,7 +88,7 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 			buildTime = buildTime,
 			buildBatch = buildBatch,
 			commitHash = vcsCommitHash,
-			changelog = vcsCommitHistory,
+			changelog = vcsCommitHistory.get(),
 			signature = signature ?: "unsigned",
 			version = androidConfig.versionName,
 			versionCode = androidConfig.versionCode,

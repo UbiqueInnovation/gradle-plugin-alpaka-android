@@ -58,7 +58,10 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		val buildTimestamp = project.findProperty("build_timestamp")?.toString()?.toLongOrNull() ?: System.currentTimeMillis()
 
 		// The build branch is the Git name of the branch
-		val vcsBranch = project.findProperty("branch")?.toString() ?: project.getGitBranchProvider().get()
+		val vcsBranchProvider = project.findProperty("branch")
+			?.toString()
+			?.let { project.provider { it } }
+			?: project.getGitBranchProvider()
 
 		// The build commit hash is the Git hash of the commit
 		val vcsCommitHash = project.findProperty("commitHash")?.toString()
@@ -72,7 +75,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			buildConfigField("String", "BUILD_ID", "\"$buildId\"")
 			buildConfigField("long", "BUILD_NUMBER", "${buildNumber}L")
 			buildConfigField("long", "BUILD_TIMESTAMP", "${buildTimestamp}L")
-			buildConfigField("String", "BRANCH", "\"$vcsBranch\"")
+			buildConfigField("String", "BRANCH", "\"${vcsBranchProvider.get()}\"")
 		}
 
 		// Specify extra properties per flavor and defaultConfig for groovy dsl
@@ -106,7 +109,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					manifestTask.buildNumber = buildNumber
 					manifestTask.buildBatch = buildBatch
 					manifestTask.buildTimestamp = buildTimestamp
-					manifestTask.buildBranch = vcsBranch
+					manifestTask.buildBranch = vcsBranchProvider
 					manifestTask.outputs.file(mergedManifestFile)
 				}
 
@@ -191,6 +194,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				val buildType = variant.buildType.name
 				if (buildType != "release") return@configureEach
 
+				val isDryRun = project.findProperty("alpakaDryrun")?.toString()?.toBoolean() ?: false
+
 				val variantName = variant.name
 				val variantNameCapitalized = variantName.capitalize()
 				val flavor = variant.flavorName
@@ -220,8 +225,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 					metadataTask.mergedManifestFile = project.getMergedManifestFile(variantName)
 					val commitCount = pluginExtension.changelogCommitCount.orElse(10).get()
-					metadataTask.vcsCommitHistory = project.getGitCommitLogProvider(commitCount).get()
-					metadataTask.vcsBranch = vcsBranch
+					metadataTask.vcsCommitHistory = project.getGitCommitLogProvider(commitCount)
+					metadataTask.vcsBranch = vcsBranchProvider
 					metadataTask.vcsCommitHash = vcsCommitHash
 					metadataTask.buildId = buildId
 					metadataTask.buildNumber = buildNumber
@@ -242,7 +247,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					uploadTask.webIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavor, buildType)
 					uploadTask.appMetadataJsonFile = getGeneratedAppMetadataFile(project.layout.buildDirectory, flavor, buildType)
 					uploadTask.proxy = pluginExtension.proxy.orNull
-					uploadTask.dryrun = project.findProperty("alpakaDryrun")?.toString()?.toBoolean() ?: false
+					uploadTask.dryrun = isDryRun
 					// ensure that the compilation tasks are run before, IF they're run
 					uploadTask.mustRunAfter(assembleTaskName, metadataTask)
 				}
@@ -253,7 +258,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					assembleAndPublishToAlpakaTaskName,
 					AssembleAndPublishToAlpakaTask::class.java
 				) { assembleAndPublishTask ->
-					assembleAndPublishTask.dryrun = project.findProperty("alpakaDryrun")?.toString()?.toBoolean() ?: false
+					assembleAndPublishTask.dryrun = isDryRun
 					assembleAndPublishTask.dependsOn(assembleTaskName, publishToAlpakaTaskName)
 				}
 

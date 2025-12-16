@@ -57,10 +57,7 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 		}
 		val generatedIconDir = generatedIconDir.get().asFile
 
-		val gradleLastModified = buildLogicFiles.files
-			.asSequence()
-			.map { it.lastModified() }
-			.maxOrNull() ?: 0L
+		val gradleLastModified = buildLogicFiles.files.maxOfOrNull { it.lastModified() } ?: 0L
 
 		val allIcons = IconUtils.findIcons(resDirs.files.toList(), mergedManifestFile.get())
 

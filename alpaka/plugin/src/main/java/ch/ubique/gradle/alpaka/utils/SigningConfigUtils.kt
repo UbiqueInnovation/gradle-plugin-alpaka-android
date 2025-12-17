@@ -1,6 +1,6 @@
 package ch.ubique.gradle.alpaka.utils
 
-import com.android.builder.model.SigningConfig
+import ch.ubique.gradle.alpaka.model.AndroidSigningConfigData
 import org.gradle.api.logging.Logger
 import java.security.KeyStore
 import java.security.MessageDigest
@@ -14,7 +14,7 @@ import java.security.cert.Certificate
  */
 class SigningConfigUtils(private val logger: Logger) {
 
-	fun getSignature(signingConfig: SigningConfig): String? {
+	fun getSignature(signingConfig: AndroidSigningConfigData): String? {
 		return try {
 			val certificate = getCertificate(signingConfig)
 			getFingerprint(certificate, "MD5")
@@ -24,7 +24,7 @@ class SigningConfigUtils(private val logger: Logger) {
 		}
 	}
 
-	private fun getCertificate(signingConfig: SigningConfig): Certificate {
+	private fun getCertificate(signingConfig: AndroidSigningConfigData): Certificate {
 		val keystore = KeyStore.getInstance(signingConfig.storeType ?: KeyStore.getDefaultType())
 		signingConfig.storeFile?.inputStream()?.use {
 			keystore.load(it, signingConfig.storePassword?.toCharArray())

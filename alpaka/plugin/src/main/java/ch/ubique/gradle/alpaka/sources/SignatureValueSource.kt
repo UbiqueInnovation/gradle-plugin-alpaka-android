@@ -1,7 +1,7 @@
 package ch.ubique.gradle.alpaka.sources
 
+import ch.ubique.gradle.alpaka.model.AndroidSigningConfigData
 import ch.ubique.gradle.alpaka.utils.SigningConfigUtils
-import com.android.builder.model.SigningConfig
 import org.gradle.api.logging.Logging
 import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ValueSource
@@ -12,7 +12,7 @@ abstract class SignatureValueSource : ValueSource<String, SignatureValueSource.P
 	private val logger = Logging.getLogger(SignatureValueSource::class.java)
 
 	interface Parameters : ValueSourceParameters {
-		var signingConfig : Provider<SigningConfig?>
+		var signingConfig : Provider<AndroidSigningConfigData?>
 	}
 
 	override fun obtain(): String {

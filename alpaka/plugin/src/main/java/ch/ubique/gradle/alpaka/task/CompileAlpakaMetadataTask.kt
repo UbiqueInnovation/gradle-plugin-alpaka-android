@@ -25,8 +25,7 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 	abstract var androidConfig: AndroidBuildConfigData
 
 	@get:Input
-	@get:Optional
-	abstract var signature: String?
+	abstract var signature: Provider<String>
 
 	@get:Input
 	abstract var vcsCommitHistory: Provider<String>
@@ -89,7 +88,7 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 			buildBatch = buildBatch,
 			commitHash = vcsCommitHash,
 			changelog = vcsCommitHistory.get(),
-			signature = signature ?: "unsigned",
+			signature = signature.get(),
 			version = androidConfig.versionName,
 			versionCode = androidConfig.versionCode,
 		)

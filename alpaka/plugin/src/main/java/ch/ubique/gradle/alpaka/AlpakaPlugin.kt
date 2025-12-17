@@ -12,8 +12,8 @@ import ch.ubique.gradle.alpaka.model.AndroidBuildConfigData
 import ch.ubique.gradle.alpaka.sources.BuildTimestampValueSource
 import ch.ubique.gradle.alpaka.sources.GitBranchValueSource
 import ch.ubique.gradle.alpaka.sources.GitCommitLogValueSource
+import ch.ubique.gradle.alpaka.sources.SignatureValueSource
 import ch.ubique.gradle.alpaka.task.*
-import ch.ubique.gradle.alpaka.utils.SigningConfigUtils
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.internal.tasks.factory.dependsOn
@@ -221,8 +221,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 						versionCode = androidExtension.defaultConfig.versionCode?.toLong() ?: 0L,
 						applicationId = variant.applicationId,
 					)
-					val signature = variant.signingConfig?.let { SigningConfigUtils(project.logger).getSignature(it) ?: "invalid" }
-					metadataTask.signature = signature
+
+					metadataTask.signature = project.getSignatureProvider(variant)
 
 					val resDirs = project.getResDirs(variant.flavorName) +
 							project.layout.buildDirectory.file("generated/res/resValues/${variant.flavorName}/${variant.buildType.name}").get().asFile
@@ -291,6 +291,12 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 	private fun Project.getBuildTimestampProvider(): Provider<Long> {
 		return project.providers.of(BuildTimestampValueSource::class.java) {}
+	}
+
+	private fun Project.getSignatureProvider(variant: ApplicationVariant): Provider<String> {
+		return project.providers.of(SignatureValueSource::class.java) {
+			it.parameters.signingConfig = project.provider { variant.signingConfig }
+		}
 	}
 
 	private fun Project.getGitBranchProvider(): Provider<String> {

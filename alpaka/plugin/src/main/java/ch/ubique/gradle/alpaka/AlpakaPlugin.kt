@@ -9,6 +9,7 @@ import ch.ubique.gradle.alpaka.extensions.getResDirs
 import ch.ubique.gradle.alpaka.extensions.listFilesOrEmpty
 import ch.ubique.gradle.alpaka.extensions.productflavor.alpakaUploadKey
 import ch.ubique.gradle.alpaka.model.AndroidBuildConfigData
+import ch.ubique.gradle.alpaka.model.AndroidSigningConfigData
 import ch.ubique.gradle.alpaka.sources.BuildTimestampValueSource
 import ch.ubique.gradle.alpaka.sources.GitBranchValueSource
 import ch.ubique.gradle.alpaka.sources.GitCommitLogValueSource
@@ -295,7 +296,17 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 	private fun Project.getSignatureProvider(variant: ApplicationVariant): Provider<String> {
 		return project.providers.of(SignatureValueSource::class.java) {
-			it.parameters.signingConfig = project.provider { variant.signingConfig }
+			it.parameters.signingConfig = project.provider {
+				variant.signingConfig?.let { config ->
+					AndroidSigningConfigData(
+						config.storeType,
+						config.storeFile,
+						config.storePassword,
+						config.keyAlias,
+						config.keyPassword
+					)
+				}
+			}
 		}
 	}
 

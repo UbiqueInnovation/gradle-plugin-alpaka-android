@@ -1,11 +1,11 @@
 package ch.ubique.gradle.alpaka.utils
 
-import org.gradle.api.Project
 import java.io.BufferedReader
+import java.io.File
 
 object GitUtils {
 
-	fun obtainBranch(project: Project): String {
+	fun obtainBranch(projectDir: File): String {
 		val gitCommand = listOf(
 			"git",
 			"rev-parse",
@@ -13,7 +13,7 @@ object GitUtils {
 			"HEAD",
 		)
 		val process = ProcessBuilder(gitCommand)
-			.directory(project.rootProject.projectDir)
+			.directory(projectDir)
 			.redirectErrorStream(true)
 			.start()
 
@@ -21,7 +21,7 @@ object GitUtils {
 		return branchName.takeIf { it.isNotEmpty() } ?: "develop"
 	}
 
-	fun obtainLastCommits(project: Project, numOfCommits: Int): String {
+	fun obtainLastCommits(projectDir: File, numOfCommits: Int): String {
 		val gitCommand = listOf(
 			"git",
 			"log",
@@ -30,7 +30,7 @@ object GitUtils {
 			"--no-merges",
 		)
 		val process = ProcessBuilder(gitCommand)
-			.directory(project.rootProject.projectDir)
+			.directory(projectDir)
 			.redirectErrorStream(true)
 			.start()
 

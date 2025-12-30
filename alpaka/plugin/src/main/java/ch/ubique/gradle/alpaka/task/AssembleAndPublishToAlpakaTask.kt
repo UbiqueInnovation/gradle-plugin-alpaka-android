@@ -14,8 +14,7 @@ abstract class AssembleAndPublishToAlpakaTask : DefaultTask() {
 	}
 
 	@get:Input
-	val dryrun: Boolean
-		get() = project.findProperty("alpakaDryrun")?.toString()?.toBoolean() ?: false
+	abstract var dryrun: Boolean
 
 	@TaskAction
 	fun noop() = Unit

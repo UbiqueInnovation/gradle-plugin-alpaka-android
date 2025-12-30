@@ -2,39 +2,36 @@
 
 package ch.ubique.gradle.alpaka.task
 
-import ch.ubique.gradle.alpaka.extensions.getResDirs
 import ch.ubique.gradle.alpaka.extensions.moshi
 import ch.ubique.gradle.alpaka.extensions.toPrettyJson
+import ch.ubique.gradle.alpaka.model.AndroidBuildConfigData
 import ch.ubique.gradle.alpaka.model.AppMetadata
-import ch.ubique.gradle.alpaka.utils.GitUtils
 import ch.ubique.gradle.alpaka.utils.ManifestUtils
-import ch.ubique.gradle.alpaka.utils.SigningConfigUtils
-import com.android.build.gradle.api.ApplicationVariant
-import com.android.build.gradle.internal.dsl.DefaultConfig
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
-import org.gradle.api.tasks.options.Option
 import org.gradle.work.DisableCachingByDefault
 import java.io.File
 
 @DisableCachingByDefault
 abstract class CompileAlpakaMetadataTask : DefaultTask() {
 
-	@get:Internal
-	abstract var androidConfig: DefaultConfig
-
-	@get:Internal
-	abstract var variant: ApplicationVariant
+	@get:Input
+	abstract var flavorName: String
 
 	@get:Input
-	@get:Option(option = "commitCount", description = "The number of commits to include in the changelog")
-	@get:Optional
-	abstract var vcsCommitCount: Int?
+	abstract var androidConfig: AndroidBuildConfigData
 
 	@get:Input
-	abstract var vcsBranch: String
+	abstract var signature: Provider<String>
+
+	@get:Input
+	abstract var vcsCommitHistory: Provider<String>
+
+	@get:Input
+	abstract var vcsBranch: Provider<String>
 
 	@get:Input
 	@get:Optional
@@ -50,7 +47,11 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 	abstract var buildBatch: String
 
 	@get:Input
-	abstract var buildTime: Long
+	abstract var buildTime: Provider<Long>
+
+	@get:InputFiles
+	@get:PathSensitive(PathSensitivity.RELATIVE)
+	abstract val resDirs: ConfigurableFileCollection
 
 	@get:InputFile
 	abstract var mergedManifestFile: Provider<File>
@@ -61,43 +62,35 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 	@TaskAction
 	fun compileAction() {
 		val manifestFile = mergedManifestFile.get()
-		val resDirs = project.getResDirs(variant.flavorName) +
-				project.layout.buildDirectory.file("generated/res/resValues/${variant.flavorName}/${variant.buildType.name}").get().asFile
 
-		val appName = ManifestUtils.findAppName(logger, resDirs, manifestFile)
+		val appName = ManifestUtils.findAppName(logger, resDirs.files.toList(), manifestFile)
 			?: throw GradleException(
 				"""
 				Failed to find app name in string resources.
 				Manifest location: ${manifestFile.absolutePath}
-				Resource directories: ${resDirs.joinToString { it.absolutePath }}
+				Resource directories: ${resDirs.files.joinToString { it.absolutePath }}
 				""".trimIndent()
 			)
 
 		val usesFeatures = ManifestUtils.findRequiredFeatures(manifestFile)
 
-		val signature = variant.signingConfig?.let {
-			SigningConfigUtils(project.logger).getSignature(it) ?: "invalid"
-		} ?: "unsigned"
-
-		val commitHistory = GitUtils.obtainLastCommits(project, numOfCommits = vcsCommitCount ?: 10)
-
 		val appMetadata = AppMetadata(
 			appName = appName,
-			packageName = variant.applicationId,
-			flavor = variant.flavorName,
-			branch = vcsBranch,
-			minSdk = requireNotNull(androidConfig.minSdk),
-			targetSdk = requireNotNull(androidConfig.targetSdk),
+			packageName = androidConfig.applicationId,
+			flavor = flavorName,
+			branch = vcsBranch.get(),
+			minSdk = androidConfig.minSdk,
+			targetSdk = androidConfig.targetSdk,
 			usesFeature = usesFeatures,
 			buildId = buildId,
 			buildNumber = buildNumber,
-			buildTime = buildTime,
+			buildTime = buildTime.get(),
 			buildBatch = buildBatch,
 			commitHash = vcsCommitHash,
-			changelog = commitHistory,
-			signature = signature,
-			version = requireNotNull(androidConfig.versionName),
-			versionCode = variant.versionCode.toLong()
+			changelog = vcsCommitHistory.get(),
+			signature = signature.get(),
+			version = androidConfig.versionName,
+			versionCode = androidConfig.versionCode,
 		)
 
 		val json = moshi().toPrettyJson(appMetadata)

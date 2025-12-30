@@ -5,10 +5,16 @@ package ch.ubique.gradle.alpaka
 import ch.ubique.gradle.alpaka.config.AlpakaPluginConfig
 import ch.ubique.gradle.alpaka.extensions.capitalize
 import ch.ubique.gradle.alpaka.extensions.getMergedManifestFile
+import ch.ubique.gradle.alpaka.extensions.getResDirs
 import ch.ubique.gradle.alpaka.extensions.listFilesOrEmpty
 import ch.ubique.gradle.alpaka.extensions.productflavor.alpakaUploadKey
+import ch.ubique.gradle.alpaka.model.AndroidBuildConfigData
+import ch.ubique.gradle.alpaka.model.AndroidSigningConfigData
+import ch.ubique.gradle.alpaka.sources.BuildTimestampValueSource
+import ch.ubique.gradle.alpaka.sources.GitBranchValueSource
+import ch.ubique.gradle.alpaka.sources.GitCommitLogValueSource
+import ch.ubique.gradle.alpaka.sources.SignatureValueSource
 import ch.ubique.gradle.alpaka.task.*
-import ch.ubique.gradle.alpaka.utils.GitUtils
 import com.android.build.gradle.AppExtension
 import com.android.build.gradle.api.ApplicationVariant
 import com.android.build.gradle.internal.tasks.factory.dependsOn
@@ -51,10 +57,17 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		val buildBatch = project.findProperty("build_batch")?.toString() ?: "0"
 
 		// The build timestamp is the timestamp when the build was started
-		val buildTimestamp = project.findProperty("build_timestamp")?.toString()?.toLongOrNull() ?: System.currentTimeMillis()
+		val buildTimestampProvider = project.findProperty("build_timestamp")
+			?.toString()
+			?.toLongOrNull()
+			?.let { project.provider { it } }
+			?: project.getBuildTimestampProvider()
 
 		// The build branch is the Git name of the branch
-		val vcsBranch = project.findProperty("branch")?.toString() ?: GitUtils.obtainBranch(project)
+		val vcsBranchProvider = project.findProperty("branch")
+			?.toString()
+			?.let { project.provider { it } }
+			?: project.getGitBranchProvider()
 
 		// The build commit hash is the Git hash of the commit
 		val vcsCommitHash = project.findProperty("commitHash")?.toString()
@@ -67,8 +80,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			buildConfigField("String", "BUILD_BATCH", "\"$buildBatch\"")
 			buildConfigField("String", "BUILD_ID", "\"$buildId\"")
 			buildConfigField("long", "BUILD_NUMBER", "${buildNumber}L")
-			buildConfigField("long", "BUILD_TIMESTAMP", "${buildTimestamp}L")
-			buildConfigField("String", "BRANCH", "\"$vcsBranch\"")
+			buildConfigField("long", "BUILD_TIMESTAMP", "${buildTimestampProvider.get()}L")
+			buildConfigField("String", "BRANCH", "\"${vcsBranchProvider.get()}\"")
 		}
 
 		// Specify extra properties per flavor and defaultConfig for groovy dsl
@@ -101,8 +114,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					manifestTask.buildId = buildId
 					manifestTask.buildNumber = buildNumber
 					manifestTask.buildBatch = buildBatch
-					manifestTask.buildTimestamp = buildTimestamp
-					manifestTask.buildBranch = vcsBranch
+					manifestTask.buildTimestamp = buildTimestampProvider
+					manifestTask.buildBranch = vcsBranchProvider
 					manifestTask.outputs.file(mergedManifestFile)
 				}
 
@@ -147,14 +160,26 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					LauncherIconLabelTask::class.java
 				) { iconTask ->
 					iconTask.variantName = variantName
-					iconTask.fullFlavorName = flavorName
-					iconTask.partialFlavorNames = productFlavors
 					iconTask.buildType = buildType
 					iconTask.labelValue = if (doLabelAppIcons) labelValue else null
 					iconTask.sourceWebIconFile = project.provider { findWebIcon(project.projectDir, flavorName) }
 					iconTask.mergedManifestFile = project.getMergedManifestFile(variantName)
 					iconTask.generatedWebIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavorName, buildType)
 					iconTask.generatedIconDir = getGeneratedIconDir(project.layout.buildDirectory, flavorName, buildType)
+
+					val flavorNames = setOf(flavorName) + productFlavors
+					iconTask.resDirs.from(project.getResDirs(flavorNames))
+
+					iconTask.buildLogicFiles.from(
+						project.file("build.gradle"),
+						project.file("build.gradle.kts"),
+						project.rootProject.file("build.gradle"),
+						project.rootProject.file("build.gradle.kts"),
+						project.rootProject.file("settings.gradle"),
+						project.rootProject.file("settings.gradle.kts"),
+						project.rootProject.file("gradle/libs.versions.toml"),
+					)
+
 					iconTask.outputs.upToDateWhen { false } // always run the task
 
 					iconTask.mustRunAfter(project.tasks.named("injectMetadataIntoManifest$variantNameCapitalized"))
@@ -175,6 +200,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				val buildType = variant.buildType.name
 				if (buildType != "release") return@configureEach
 
+				val isDryRun = project.findProperty("alpakaDryrun")?.toString()?.toBoolean() ?: false
+
 				val variantName = variant.name
 				val variantNameCapitalized = variantName.capitalize()
 				val flavor = variant.flavorName
@@ -187,15 +214,29 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					"compileAlpakaMetadata$variantNameCapitalized",
 					CompileAlpakaMetadataTask::class.java
 				) { metadataTask ->
-					metadataTask.androidConfig = androidExtension.defaultConfig
-					metadataTask.variant = variant
+					metadataTask.flavorName = variant.flavorName
+					metadataTask.androidConfig = AndroidBuildConfigData(
+						minSdk = requireNotNull(androidExtension.defaultConfig.minSdk),
+						targetSdk = requireNotNull(androidExtension.defaultConfig.targetSdk),
+						versionName = requireNotNull(androidExtension.defaultConfig.versionName),
+						versionCode = androidExtension.defaultConfig.versionCode?.toLong() ?: 0L,
+						applicationId = variant.applicationId,
+					)
+
+					metadataTask.signature = project.getSignatureProvider(variant)
+
+					val resDirs = project.getResDirs(variant.flavorName) +
+							project.layout.buildDirectory.file("generated/res/resValues/${variant.flavorName}/${variant.buildType.name}").get().asFile
+					metadataTask.resDirs.from(resDirs)
+
 					metadataTask.mergedManifestFile = project.getMergedManifestFile(variantName)
-					metadataTask.vcsCommitCount = pluginExtension.changelogCommitCount.orNull
-					metadataTask.vcsBranch = vcsBranch
+					val commitCount = pluginExtension.changelogCommitCount.orElse(10).get()
+					metadataTask.vcsCommitHistory = project.getGitCommitLogProvider(commitCount)
+					metadataTask.vcsBranch = vcsBranchProvider
 					metadataTask.vcsCommitHash = vcsCommitHash
 					metadataTask.buildId = buildId
 					metadataTask.buildNumber = buildNumber
-					metadataTask.buildTime = buildTimestamp
+					metadataTask.buildTime = buildTimestampProvider
 					metadataTask.buildBatch = buildBatch
 					metadataTask.metadataFile = getGeneratedAppMetadataFile(project.layout.buildDirectory, flavor, buildType)
 				}
@@ -212,6 +253,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					uploadTask.webIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavor, buildType)
 					uploadTask.appMetadataJsonFile = getGeneratedAppMetadataFile(project.layout.buildDirectory, flavor, buildType)
 					uploadTask.proxy = pluginExtension.proxy.orNull
+					uploadTask.dryrun = isDryRun
 					// ensure that the compilation tasks are run before, IF they're run
 					uploadTask.mustRunAfter(assembleTaskName, metadataTask)
 				}
@@ -222,6 +264,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					assembleAndPublishToAlpakaTaskName,
 					AssembleAndPublishToAlpakaTask::class.java
 				) { assembleAndPublishTask ->
+					assembleAndPublishTask.dryrun = isDryRun
 					assembleAndPublishTask.dependsOn(assembleTaskName, publishToAlpakaTaskName)
 				}
 
@@ -245,6 +288,39 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		val ext = project.extensions.findByType(AppExtension::class.java)
 			?: throw GradleException("Android gradle plugin extension has not been applied before")
 		return ext
+	}
+
+	private fun Project.getBuildTimestampProvider(): Provider<Long> {
+		return project.providers.of(BuildTimestampValueSource::class.java) {}
+	}
+
+	private fun Project.getSignatureProvider(variant: ApplicationVariant): Provider<String> {
+		return project.providers.of(SignatureValueSource::class.java) {
+			it.parameters.signingConfig = project.provider {
+				variant.signingConfig?.let { config ->
+					AndroidSigningConfigData(
+						config.storeType,
+						config.storeFile,
+						config.storePassword,
+						config.keyAlias,
+						config.keyPassword
+					)
+				}
+			}
+		}
+	}
+
+	private fun Project.getGitBranchProvider(): Provider<String> {
+		return project.providers.of(GitBranchValueSource::class.java) {
+			it.parameters.projectDirProvider = project.provider { project.rootProject.projectDir }
+		}
+	}
+
+	private fun Project.getGitCommitLogProvider(numOfCommits: Int): Provider<String> {
+		return project.providers.of(GitCommitLogValueSource::class.java) {
+			it.parameters.projectDirProvider = project.provider { project.rootProject.projectDir }
+			it.parameters.numOfCommits = project.provider { numOfCommits }
+		}
 	}
 
 	private fun findWebIcon(moduleDir: File, flavor: String): File {

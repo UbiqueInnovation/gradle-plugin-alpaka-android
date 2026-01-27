@@ -33,7 +33,7 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 	abstract var vcsCommitHistory: Provider<String>
 
 	@get:Input
-	abstract var vcsBranch: Provider<out String>
+	abstract var vcsBranch: Provider<String>
 
 	@get:Input
 	@get:Optional

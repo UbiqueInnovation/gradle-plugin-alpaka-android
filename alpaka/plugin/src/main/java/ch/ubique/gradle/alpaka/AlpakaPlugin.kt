@@ -1,9 +1,12 @@
 package ch.ubique.gradle.alpaka
 
 import ch.ubique.gradle.alpaka.config.AlpakaPluginConfig
-import ch.ubique.gradle.alpaka.extensions.android.*
+import ch.ubique.gradle.alpaka.extensions.android.getProductFlavors
+import ch.ubique.gradle.alpaka.extensions.android.requireBuildType
+import ch.ubique.gradle.alpaka.extensions.android.requireFlavorName
+import ch.ubique.gradle.alpaka.extensions.android.requireRes
 import ch.ubique.gradle.alpaka.extensions.capitalize
-import ch.ubique.gradle.alpaka.extensions.getResDirs
+import ch.ubique.gradle.alpaka.extensions.gradle.flattened
 import ch.ubique.gradle.alpaka.extensions.listFilesOrEmpty
 import ch.ubique.gradle.alpaka.model.AndroidBuildConfigData
 import ch.ubique.gradle.alpaka.model.AndroidSigningConfigData
@@ -91,7 +94,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			val flavor = variant.requireFlavorName()
 			val buildType = variant.requireBuildType()
 
-			val injectManifestTask = project.tasks.register(
+			val metadataManifestTask = project.tasks.register(
 				"compileAlpakaMetadataManifest$variantNameCapitalized",
 				MetadataManifestTask::class.java
 			) { manifestTask ->
@@ -105,7 +108,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				manifestTask.buildBranch = vcsBranchProvider
 			}
 
-			variant.sources.manifests.addGeneratedManifestFile(injectManifestTask, MetadataManifestTask::manifestFile)
+			variant.sources.manifests.addGeneratedManifestFile(metadataManifestTask, MetadataManifestTask::manifestFile)
 		}
 
 		androidExtension.productFlavors.configureEach { flavor ->
@@ -119,15 +122,10 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			val variantName = variant.name
 			val variantNameCapitalized = variantName.capitalize()
 			val flavorName = variant.requireFlavorName()
-			val productFlavors = variant.productFlavorNames
 			val buildType = variant.requireBuildType()
 			val labelValue = variant.getLauncherIconLabel(androidExtension)
 
 			val doLabelAppIcons = pluginExtension.labelAppIcons.getOrElse(true)
-
-			val manifestFiles = variant.sources.manifests.all.map { manifests ->
-				manifests.mapNotNull { manifest -> manifest.asFile }
-			}
 
 			val launcherIconLabelTask = project.tasks.register(
 				"labelAppIcon$variantNameCapitalized",
@@ -137,11 +135,9 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				iconTask.buildType = buildType
 				iconTask.labelValue = if (doLabelAppIcons) labelValue else null
 				iconTask.sourceWebIconFile = project.findWebIcon(flavorName)
-				iconTask.manifestFiles = manifestFiles
+				iconTask.manifestFiles = variant.sources.manifests.all
 				iconTask.generatedWebIcon = project.getGeneratedWebIconFile(flavorName, buildType)
-
-				val flavorNames = setOf(flavorName) + productFlavors
-				iconTask.resDirs.from(project.getResDirs(flavorNames))
+				iconTask.resDirs = variant.sources.requireRes().static.flattened()
 
 				iconTask.buildLogicFiles.from(
 					project.file("build.gradle"),
@@ -190,7 +186,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				)
 				metadataTask.signature = project.getSignatureProvider(variant, androidExtension)
 
-				metadataTask.resDirs = variant.sources.requireRes().all.map { it.flatten() }
+				metadataTask.resDirs = variant.sources.requireRes().all.flattened()
 
 				val mergedManifest = variant.artifacts.get(SingleArtifact.MERGED_MANIFEST)
 				metadataTask.mergedManifestFile.set(mergedManifest)

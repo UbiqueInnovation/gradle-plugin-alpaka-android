@@ -4,7 +4,7 @@ import ch.ubique.gradle.alpaka.network.dto.UploadDataDto
 import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
-data class AppMetadata(
+internal data class AppMetadata(
 	val appName: String,
 	val packageName: String,
 	val flavor: String,

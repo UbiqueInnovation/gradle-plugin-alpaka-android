@@ -2,10 +2,9 @@ package ch.ubique.gradle.alpaka.task
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Provider
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.*
 import org.gradle.work.DisableCachingByDefault
 import java.io.File
 
@@ -45,26 +44,25 @@ abstract class InjectMetadataIntoManifestTask : DefaultTask() {
 	abstract var buildBatch: String
 
 	@get:Input
-	abstract var buildTimestamp: Provider<Long>
+	abstract var buildTimestamp: Provider<out Long>
 
 	@get:Input
-	abstract var buildBranch: Provider<String>
+	abstract var buildBranch: Provider<out String>
 
 	@get:InputFile
-	abstract var mergedManifestFile: Provider<File>
+	@get:PathSensitive(PathSensitivity.RELATIVE)
+	abstract val inputManifest: RegularFileProperty
+
+	@get:OutputFile
+	abstract val outputManifest: RegularFileProperty
 
 	@TaskAction
 	fun injectMetadataIntoManifest() {
-		val manifestFile = mergedManifestFile.get()
+		val manifestFile = inputManifest.get().asFile
 		if (manifestFile.exists()) {
-			manipulateManifestFile(manifestFile)
+			manipulateManifestFile(manifestFile, outputManifest.get().asFile)
 		} else {
-			throw GradleException(
-				"""
-				Manifest file not found for $variantName
-				Tried location: ${manifestFile.absolutePath}
-				""".trimIndent()
-			)
+			throw GradleException("Manifest file not found for $variantName at expected location: ${manifestFile.absolutePath}")
 		}
 	}
 
@@ -72,7 +70,9 @@ abstract class InjectMetadataIntoManifestTask : DefaultTask() {
 	 * Add custom meta data to manifest.
 	 * @param manifestFile
 	 */
-	private fun manipulateManifestFile(manifestFile: File) {
+	private fun manipulateManifestFile(manifestFile: File, outputFile: File) {
+		logger.info("InjectMetadataIntoManifestTask: from manifest ${manifestFile.absolutePath} to ${outputFile.absolutePath}")
+
 		// read manifest file
 		var manifestContent = manifestFile.readText(Charsets.UTF_8)
 
@@ -85,7 +85,7 @@ abstract class InjectMetadataIntoManifestTask : DefaultTask() {
 		manifestContent = addMetadata(manifestContent, METADATA_KEY_FLAVOR, flavor)
 
 		// store modified manifest
-		manifestFile.writeText(manifestContent, Charsets.UTF_8)
+		outputFile.writeText(manifestContent, Charsets.UTF_8)
 	}
 
 	/**

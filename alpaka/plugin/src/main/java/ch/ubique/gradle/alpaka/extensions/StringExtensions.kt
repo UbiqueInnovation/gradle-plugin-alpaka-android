@@ -1,7 +1,7 @@
 package ch.ubique.gradle.alpaka.extensions
 
-import java.util.*
+import java.util.Locale
 
-fun String.capitalize(): String {
+internal fun String.capitalize(): String {
 	return replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.ROOT) else it.toString() }
 }

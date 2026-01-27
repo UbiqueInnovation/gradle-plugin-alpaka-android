@@ -3,7 +3,7 @@ package ch.ubique.gradle.alpaka.model
 import java.io.File
 import java.io.Serializable
 
-data class AndroidSigningConfigData(
+internal data class AndroidSigningConfigData(
 	val storeType: String?,
 	val storeFile: File?,
 	val storePassword: String?,

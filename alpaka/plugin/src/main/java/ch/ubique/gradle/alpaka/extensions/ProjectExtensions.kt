@@ -1,30 +1,20 @@
 package ch.ubique.gradle.alpaka.extensions
 
-import com.android.build.gradle.BaseExtension
+import com.android.build.api.dsl.CommonExtension
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
-import org.gradle.api.provider.Provider
 import java.io.File
 
-/**
- * returns File with merged manifest
- */
-fun Project.getMergedManifestFile(variantName: String): Provider<File> {
-	return layout.buildDirectory
-		.file("intermediates/merged_manifests/${variantName}/process${variantName.capitalize()}Manifest/AndroidManifest.xml")
-		.map { it.asFile }
-}
+internal fun Project.getResDirs(flavor: String) = getResDirs(setOf(flavor))
 
-fun Project.getResDirs(flavor: String) = getResDirs(setOf(flavor))
-
-fun Project.getResDirs(flavors: Set<String>): List<File> {
-	val androidModules: List<BaseExtension> = configurations
+internal fun Project.getResDirs(flavors: Set<String>): List<File> {
+	val androidModules: List<CommonExtension> = configurations
 		.asSequence()
 		.flatMap { it.dependencies }
 		.filterIsInstance<ProjectDependency>()
 		.map { project(it.path) }
 		.distinct()
-		.mapNotNull { it.extensions.findByType(BaseExtension::class.java) }
+		.mapNotNull { it.extensions.findByType(CommonExtension::class.java) }
 		.toList()
 
 	val resDirs: List<File> = androidModules
@@ -33,8 +23,9 @@ fun Project.getResDirs(flavors: Set<String>): List<File> {
 				.plus(module.sourceSets.findByName("main"))
 				.filterNotNull()
 		}
-		.flatMap { it.res.srcDirs }
-		.filter { it.path.contains("generated").not() }
+		.flatMap { it.res.directories } // TODO: use variants api
+		.map { File(it) }
+		.filter { it.path.contains("generated/").not() }
 
 	return resDirs
 }

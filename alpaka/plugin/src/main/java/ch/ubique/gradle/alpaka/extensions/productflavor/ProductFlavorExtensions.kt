@@ -9,18 +9,18 @@ import org.jetbrains.kotlin.gradle.plugin.extraProperties
 @Suppress("UNCHECKED_CAST")
 private fun <T> ProductFlavor.getProperty(key: String): T {
 	return when {
-		this is ExtensionAware -> extraProperties.properties[key] as T
+		this is ExtensionAware -> extraProperties[key] as T
 		else -> {
 			val flavor = this as ReadOnlyProductFlavor
 			val extras = flavor.getProperty("ext") as DefaultExtraPropertiesExtension
-			extras.properties[key] as T
+			extras[key] as T
 		}
 	}
 }
 
 private fun <T> ProductFlavor.setProperty(key: String, value: T) {
 	val extensionAware = this as ExtensionAware
-	extensionAware.extraProperties.properties[key] = value
+	extensionAware.extraProperties[key] = value
 }
 
 internal var ProductFlavor.launcherIconLabel: String?

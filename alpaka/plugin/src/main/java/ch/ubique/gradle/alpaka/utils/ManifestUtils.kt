@@ -3,7 +3,7 @@ package ch.ubique.gradle.alpaka.utils
 import org.gradle.api.logging.Logger
 import java.io.File
 
-object ManifestUtils {
+internal object ManifestUtils {
 
 	/**
 	 * Finds the app name from specified in the manifest.

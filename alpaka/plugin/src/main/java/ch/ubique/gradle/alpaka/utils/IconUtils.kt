@@ -6,7 +6,7 @@ import java.awt.image.BufferedImage
 import java.io.File
 import javax.imageio.ImageIO
 
-object IconUtils {
+internal object IconUtils {
 
 	private const val DEFAULT_ICON_NAME = "ic_launcher"
 

@@ -5,9 +5,7 @@ import org.w3c.dom.Element
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
 
-class XmlParser(
-	file: File,
-) {
+internal class XmlParser(file: File) {
 
 	private val root: Element
 

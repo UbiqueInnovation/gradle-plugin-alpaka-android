@@ -2,7 +2,7 @@ package ch.ubique.gradle.alpaka.extensions
 
 import kotlin.reflect.KProperty1
 
-fun Any.prettyPrint(): String {
+internal fun Any.prettyPrint(): String {
 	return this::class
 		.members
 		.filterIsInstance<KProperty1<Any, *>>()

@@ -1,6 +1,5 @@
 plugins {
 	alias(libs.plugins.androidApplication)
-	alias(libs.plugins.kotlinAndroid)
 	id("ch.ubique.gradle.alpaka")
 }
 
@@ -56,8 +55,8 @@ android {
 		targetCompatibility = JavaVersion.VERSION_17
 	}
 
-	kotlinOptions {
-		jvmTarget = JavaVersion.VERSION_17.toString()
+	buildFeatures {
+		resValues = true
 	}
 }
 

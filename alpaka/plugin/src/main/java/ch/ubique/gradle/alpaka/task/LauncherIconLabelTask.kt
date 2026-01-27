@@ -4,7 +4,8 @@ import ch.ubique.gradle.alpaka.extensions.olderThan
 import ch.ubique.gradle.alpaka.utils.IconUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
-import org.gradle.api.file.Directory
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import java.io.File
@@ -29,7 +30,7 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 
 	@get:InputFile
 	@get:PathSensitive(PathSensitivity.RELATIVE)
-	abstract var mergedManifestFile: Provider<File>
+	abstract val mergedManifestFile: RegularFileProperty
 
 	@get:InputFile
 	@get:PathSensitive(PathSensitivity.RELATIVE)
@@ -44,7 +45,7 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 	abstract val buildLogicFiles: ConfigurableFileCollection
 
 	@get:OutputDirectory
-	abstract var generatedIconDir: Provider<Directory>
+	abstract val generatedIconDir: DirectoryProperty
 
 	@get:OutputFile
 	abstract var generatedWebIcon: Provider<File>
@@ -59,7 +60,7 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 
 		val gradleLastModified = buildLogicFiles.files.maxOfOrNull { it.lastModified() } ?: 0L
 
-		val allIcons = IconUtils.findIcons(resDirs.files.toList(), mergedManifestFile.get())
+		val allIcons = IconUtils.findIcons(resDirs.files.toList(), mergedManifestFile.get().asFile)
 
 		val webIconSource = sourceWebIconFile.get()
 		val bannerLabel = labelValue

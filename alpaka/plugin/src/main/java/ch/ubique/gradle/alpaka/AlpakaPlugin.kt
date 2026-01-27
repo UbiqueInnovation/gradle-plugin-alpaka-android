@@ -19,7 +19,6 @@ import com.android.build.api.variant.ApplicationVariant
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.alpakaUploadKey
@@ -143,7 +142,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				iconTask.labelValue = if (doLabelAppIcons) labelValue else null
 				iconTask.sourceWebIconFile = project.findWebIcon(flavorName)
 				iconTask.manifestFiles = manifestFiles
-				iconTask.generatedWebIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavorName, buildType)
+				iconTask.generatedWebIcon = project.getGeneratedWebIconFile(flavorName, buildType)
 
 				val flavorNames = setOf(flavorName) + productFlavors
 				iconTask.resDirs.from(project.getResDirs(flavorNames))
@@ -194,12 +193,9 @@ abstract class AlpakaPlugin : Plugin<Project> {
 					versionName = requireNotNull(androidExtension.defaultConfig.versionName),
 					versionCode = androidExtension.defaultConfig.versionCode?.toLong() ?: 0L,
 				)
-
 				metadataTask.signature = project.getSignatureProvider(variant, androidExtension)
 
-				val resDirs = project.getResDirs(flavorName) +
-						project.layout.buildDirectory.file("generated/res/resValues/$flavorName/$buildType").get().asFile
-				metadataTask.resDirs.from(resDirs)
+				metadataTask.resDirs = variant.sources.requireRes().all.map { it.flatten() }
 
 				val mergedManifest = variant.artifacts.get(SingleArtifact.MERGED_MANIFEST)
 				metadataTask.mergedManifestFile.set(mergedManifest)
@@ -211,7 +207,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				metadataTask.buildNumber = buildNumber
 				metadataTask.buildTime = buildTimestampProvider
 				metadataTask.buildBatch = buildBatch
-				metadataTask.metadataFile = getGeneratedAppMetadataFile(project.layout.buildDirectory, flavorName, buildType)
+				metadataTask.metadataFile = project.getGeneratedAppMetadataFile(flavorName, buildType)
 			}
 			project.afterEvaluate {
 				project.tasks.named(assembleTaskName) { it.finalizedBy(metadataTask) }
@@ -225,8 +221,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			) { uploadTask ->
 				uploadTask.uploadKey = uploadKey ?: throw GradleException("No alpakaUploadKey specified")
 				uploadTask.apkDir = variant.artifacts.get(SingleArtifact.APK)
-				uploadTask.webIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavorName, buildType)
-				uploadTask.appMetadataJsonFile = getGeneratedAppMetadataFile(project.layout.buildDirectory, flavorName, buildType)
+				uploadTask.webIcon = project.getGeneratedWebIconFile(flavorName, buildType)
+				uploadTask.appMetadataJsonFile = project.getGeneratedAppMetadataFile(flavorName, buildType)
 				uploadTask.proxy = pluginExtension.proxy.orNull
 				uploadTask.dryrun = isDryRun
 				// ensure that the compilation tasks are run before, IF they're run
@@ -308,12 +304,12 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		}
 	}
 
-	private fun getGeneratedWebIconFile(buildDir: DirectoryProperty, flavor: String, buildType: String): Provider<File> {
-		return buildDir.file("outputs/launcher-icon/$flavor/$buildType/web-icon.png").map { it.asFile }
+	private fun Project.getGeneratedWebIconFile(flavor: String, buildType: String): Provider<File> {
+		return layout.buildDirectory.file("outputs/launcher-icon/$flavor/$buildType/web-icon.png").map { it.asFile }
 	}
 
-	private fun getGeneratedAppMetadataFile(buildDir: DirectoryProperty, flavor: String, buildType: String): Provider<File> {
-		return buildDir.file("outputs/alpaka/$flavor/$buildType/metadata.json").map { it.asFile }
+	private fun Project.getGeneratedAppMetadataFile(flavor: String, buildType: String): Provider<File> {
+		return layout.buildDirectory.file("outputs/alpaka/$flavor/$buildType/metadata.json").map { it.asFile }
 	}
 
 	private fun getUploadKey(variant: ApplicationVariant, androidExtension: ApplicationExtension): String? {

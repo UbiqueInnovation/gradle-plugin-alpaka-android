@@ -7,7 +7,7 @@ import ch.ubique.gradle.alpaka.model.AppMetadata
 import ch.ubique.gradle.alpaka.utils.ManifestUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
-import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.Directory
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
@@ -53,7 +53,7 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 
 	@get:InputFiles
 	@get:PathSensitive(PathSensitivity.RELATIVE)
-	abstract val resDirs: ConfigurableFileCollection
+	abstract var resDirs: Provider<List<Directory>>
 
 	@get:InputFile
 	@get:PathSensitive(PathSensitivity.RELATIVE)
@@ -66,12 +66,14 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 	fun compileAction() {
 		val manifestFile = mergedManifestFile.get().asFile
 
-		val appName = ManifestUtils.findAppName(logger, resDirs.files.toList(), manifestFile)
+		val resDirs = resDirs.get().map { it.asFile }
+
+		val appName = ManifestUtils.findAppName(logger, resDirs, manifestFile)
 			?: throw GradleException(
 				"""
 				Failed to find app name in string resources.
 				Manifest location: ${manifestFile.absolutePath}
-				Resource directories: ${resDirs.files.joinToString { it.absolutePath }}
+				Resource directories: ${resDirs.joinToString { it.absolutePath }}
 				""".trimIndent()
 			)
 

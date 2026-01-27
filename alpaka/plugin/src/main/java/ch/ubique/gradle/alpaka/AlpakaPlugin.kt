@@ -92,8 +92,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			val buildType = variant.requireBuildType()
 
 			val injectManifestTask = project.tasks.register(
-				"injectMetadataIntoManifest$variantNameCapitalized",
-				InjectMetadataIntoManifestTask::class.java
+				"compileAlpakaMetadataManifest$variantNameCapitalized",
+				MetadataManifestTask::class.java
 			) { manifestTask ->
 				manifestTask.variantName = variantName
 				manifestTask.flavor = flavor
@@ -105,11 +105,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				manifestTask.buildBranch = vcsBranchProvider
 			}
 
-			// TODO: maybe use variant.sources.manifests.addGeneratedManifestFile() with separate manifest
-
-			variant.artifacts.use(injectManifestTask)
-				.wiredWithFiles(InjectMetadataIntoManifestTask::inputManifest, InjectMetadataIntoManifestTask::outputManifest)
-				.toTransform(SingleArtifact.MERGED_MANIFEST)
+			variant.sources.manifests.addGeneratedManifestFile(injectManifestTask, MetadataManifestTask::manifestFile)
 		}
 
 		androidExtension.productFlavors.configureEach { flavor ->
@@ -125,7 +121,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			val flavorName = variant.requireFlavorName()
 			val productFlavors = variant.productFlavorNames
 			val buildType = variant.requireBuildType()
-			val labelValue = getLauncherIconLabel(variant, androidExtension)
+			val labelValue = variant.getLauncherIconLabel(androidExtension)
 
 			val doLabelAppIcons = pluginExtension.labelAppIcons.getOrElse(true)
 
@@ -161,7 +157,6 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			}
 
 			if (doLabelAppIcons) {
-				// TODO: what happens of the generatedIconDir value is not set manually
 				variant.sources.requireRes().addGeneratedSourceDirectory(launcherIconLabelTask, LauncherIconLabelTask::generatedIconDir)
 			}
 		}
@@ -176,7 +171,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			val variantName = variant.name
 			val variantNameCapitalized = variantName.capitalize()
 			val flavorName = variant.requireFlavorName()
-			val uploadKey = getUploadKey(variant, androidExtension)
+			val uploadKey = variant.getUploadKey(androidExtension)
 
 			val assembleTaskName = "assemble$variantNameCapitalized"
 
@@ -312,13 +307,13 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		return layout.buildDirectory.file("outputs/alpaka/$flavor/$buildType/metadata.json").map { it.asFile }
 	}
 
-	private fun getUploadKey(variant: ApplicationVariant, androidExtension: ApplicationExtension): String? {
-		val productFlavor = variant.getProductFlavors(androidExtension).firstOrNull()
+	private fun ApplicationVariant.getUploadKey(androidExtension: ApplicationExtension): String? {
+		val productFlavor = getProductFlavors(androidExtension).firstOrNull()
 		return productFlavor?.alpakaUploadKey ?: androidExtension.defaultConfig.alpakaUploadKey
 	}
 
-	private fun getLauncherIconLabel(variant: ApplicationVariant, androidExtension: ApplicationExtension): String? {
-		val productFlavors = variant.getProductFlavors(androidExtension)
+	private fun ApplicationVariant.getLauncherIconLabel(androidExtension: ApplicationExtension): String? {
+		val productFlavors = getProductFlavors(androidExtension)
 		val flavorLabel = productFlavors.firstNotNullOfOrNull { it.launcherIconLabel }
 		return flavorLabel ?: androidExtension.defaultConfig.launcherIconLabel
 	}

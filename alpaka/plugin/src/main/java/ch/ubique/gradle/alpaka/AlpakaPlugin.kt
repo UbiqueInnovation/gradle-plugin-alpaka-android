@@ -107,6 +107,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				manifestTask.buildBranch = vcsBranchProvider
 			}
 
+			// TODO: maybe use variant.sources.manifests.addGeneratedManifestFile() with separate manifest
+
 			variant.artifacts.use(injectManifestTask)
 				.wiredWithFiles(InjectMetadataIntoManifestTask::inputManifest, InjectMetadataIntoManifestTask::outputManifest)
 				.toTransform(SingleArtifact.MERGED_MANIFEST)
@@ -123,13 +125,15 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			val variantName = variant.name
 			val variantNameCapitalized = variantName.capitalize()
 			val flavorName = variant.requireFlavorName()
-			val productFlavors = variant.productFlavors.map { (dimension, flavor) -> flavor }
+			val productFlavors = variant.productFlavorNames
 			val buildType = variant.requireBuildType()
 			val labelValue = getLauncherIconLabel(variant, androidExtension)
 
 			val doLabelAppIcons = pluginExtension.labelAppIcons.getOrElse(true)
 
-			val mergedManifest = variant.artifacts.get(SingleArtifact.MERGED_MANIFEST)
+			val manifestFiles = variant.sources.manifests.all.map { manifests ->
+				manifests.mapNotNull { manifest -> manifest.asFile }
+			}
 
 			val launcherIconLabelTask = project.tasks.register(
 				"labelAppIcon$variantNameCapitalized",
@@ -138,8 +142,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				iconTask.variantName = variantName
 				iconTask.buildType = buildType
 				iconTask.labelValue = if (doLabelAppIcons) labelValue else null
-				iconTask.sourceWebIconFile = project.provider { findWebIcon(project.projectDir, flavorName) }
-				iconTask.mergedManifestFile.set(mergedManifest)
+				iconTask.sourceWebIconFile = project.findWebIcon(flavorName)
+				iconTask.manifestFiles = manifestFiles
 				iconTask.generatedWebIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavorName, buildType)
 				iconTask.generatedIconDir.set(project.getGeneratedIconDir(flavorName, buildType))
 
@@ -157,22 +161,11 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				)
 
 				iconTask.outputs.upToDateWhen { false } // always run the task
-
-				iconTask.mustRunAfter(project.tasks.named("injectMetadataIntoManifest$variantNameCapitalized"))
 			}
 
 			if (doLabelAppIcons) {
 				// TODO: what happens of the generatedIconDir value is not set manually
 				variant.sources.requireRes().addGeneratedSourceDirectory(launcherIconLabelTask, LauncherIconLabelTask::generatedIconDir)
-			}
-
-			project.afterEvaluate {
-				// TODO: dependencies no longer needed?
-				project.tasks.named("map${variantNameCapitalized}SourceSetPaths") { it.dependsOn(launcherIconLabelTask) }
-				project.tasks.named("generate${variantNameCapitalized}Resources") { it.dependsOn(launcherIconLabelTask) }
-				project.tasks.named("process${variantNameCapitalized}NavigationResources") { it.dependsOn(launcherIconLabelTask) }
-				project.tasks.matching { it.name == "extract${variantNameCapitalized}SupportedLocales" }
-					.configureEach { it.dependsOn(launcherIconLabelTask) }
 			}
 		}
 
@@ -254,6 +247,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 			// uploadToAlpaka{$variant} deprecated task to assemble and publish to alpaka, kept for backwards compatibility reasons
 			val legacyUploadTaskName = "uploadToAlpaka$variantNameCapitalized"
+			@Suppress("DEPRECATION")
 			project.tasks.register(
 				legacyUploadTaskName,
 				UploadToAlpakaBackendTask::class.java
@@ -306,12 +300,14 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		}
 	}
 
-	private fun findWebIcon(moduleDir: File, flavor: String): File {
-		val dirs = sequenceOf(File(moduleDir, "src/$flavor"), File(moduleDir, "src/main"), moduleDir)
-		return dirs
-			.flatMap { it.listFilesOrEmpty() }
-			.find { it.name.matches(Regex(".*(web|playstore|512)\\.(png|webp)")) }
-			?: throw GradleException("Must provide web icon matching (web|playstore|512).(png|webp) in one of the following locations:\n  ${dirs.joinToString()}")
+	private fun Project.findWebIcon(flavor: String): Provider<File> {
+		return project.provider {
+			val moduleDir = project.projectDir
+			val dirs = sequenceOf(File(moduleDir, "src/$flavor"), File(moduleDir, "src/main"), moduleDir)
+			dirs.flatMap { it.listFilesOrEmpty() }
+				.find { it.name.matches(Regex(".*(web|playstore|512)\\.(png|webp)")) }
+				?: throw GradleException("Must provide web icon matching (web|playstore|512).(png|webp) in one of the following locations:\n  ${dirs.joinToString()}")
+		}
 	}
 
 	private fun getGeneratedWebIconFile(buildDir: DirectoryProperty, flavor: String, buildType: String): Provider<File> {

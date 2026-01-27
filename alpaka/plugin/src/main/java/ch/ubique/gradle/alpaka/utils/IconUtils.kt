@@ -27,8 +27,9 @@ internal object IconUtils {
 	/**
 	 * Finds all icon files matching the icon specified in the given manifest.
 	 */
-	fun findIcons(resDirs: List<File>, manifest: File): List<File> {
-		val iconName = getIconName(manifest) ?: DEFAULT_ICON_NAME
+	fun findIcons(resDirs: List<File>, manifests: List<File>): List<File> {
+		val localIconName = manifests.firstNotNullOfOrNull { getIconName(it) }
+		val iconName = localIconName ?: DEFAULT_ICON_NAME
 
 		for (resDir in resDirs) {
 			if (resDir.exists()) {

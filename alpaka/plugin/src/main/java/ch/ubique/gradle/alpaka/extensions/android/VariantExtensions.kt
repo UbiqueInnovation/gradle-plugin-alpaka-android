@@ -5,9 +5,13 @@ import com.android.build.api.dsl.ApplicationProductFlavor
 import com.android.build.api.variant.Variant
 
 internal fun Variant.getProductFlavors(androidExtension: ApplicationExtension): List<ApplicationProductFlavor> {
-	val flavorNames = productFlavors.map { (dimension, flavor) -> flavor }.toSet()
+	val flavorNames = productFlavorNames
 	return androidExtension.productFlavors.filter { it.name in flavorNames }
 }
+
+@Suppress("UnusedVariable")
+internal val Variant.productFlavorNames: List<String>
+	get() = productFlavors.map { (dimension, flavor) -> flavor }.distinct()
 
 internal fun Variant.requireFlavorName(): String {
 	return requireNotNull(flavorName) { "Missing flavor name for variant $name"}

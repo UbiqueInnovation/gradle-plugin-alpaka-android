@@ -19,7 +19,7 @@ internal class SigningConfigUtils(private val logger: Logger) {
 			val certificate = getCertificate(signingConfig)
 			getFingerprint(certificate, "MD5")
 		} catch (e: Exception) {
-			logger.info("Failed to get MD5 signature for certificate", e)
+			logger.warn("Failed to get MD5 signature for certificate", e)
 			null
 		}
 	}

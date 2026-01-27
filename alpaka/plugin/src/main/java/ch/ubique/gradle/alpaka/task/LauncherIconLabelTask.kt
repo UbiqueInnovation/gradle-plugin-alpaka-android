@@ -5,7 +5,6 @@ import ch.ubique.gradle.alpaka.utils.IconUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import java.io.File
@@ -28,9 +27,9 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 	@get:Optional
 	abstract var labelValue: String?
 
-	@get:InputFile
+	@get:InputFiles
 	@get:PathSensitive(PathSensitivity.RELATIVE)
-	abstract val mergedManifestFile: RegularFileProperty
+	abstract var manifestFiles: Provider<List<File>>
 
 	@get:InputFile
 	@get:PathSensitive(PathSensitivity.RELATIVE)
@@ -60,7 +59,7 @@ abstract class LauncherIconLabelTask : DefaultTask() {
 
 		val gradleLastModified = buildLogicFiles.files.maxOfOrNull { it.lastModified() } ?: 0L
 
-		val allIcons = IconUtils.findIcons(resDirs.files.toList(), mergedManifestFile.get().asFile)
+		val allIcons = IconUtils.findIcons(resDirs.files.toList(), manifestFiles.get())
 
 		val webIconSource = sourceWebIconFile.get()
 		val bannerLabel = labelValue

@@ -19,7 +19,6 @@ import com.android.build.api.variant.ApplicationVariant
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.file.Directory
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.provider.Provider
@@ -145,7 +144,6 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				iconTask.sourceWebIconFile = project.findWebIcon(flavorName)
 				iconTask.manifestFiles = manifestFiles
 				iconTask.generatedWebIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavorName, buildType)
-				iconTask.generatedIconDir.set(project.getGeneratedIconDir(flavorName, buildType))
 
 				val flavorNames = setOf(flavorName) + productFlavors
 				iconTask.resDirs.from(project.getResDirs(flavorNames))
@@ -312,10 +310,6 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 	private fun getGeneratedWebIconFile(buildDir: DirectoryProperty, flavor: String, buildType: String): Provider<File> {
 		return buildDir.file("outputs/launcher-icon/$flavor/$buildType/web-icon.png").map { it.asFile }
-	}
-
-	private fun Project.getGeneratedIconDir(flavor: String, buildType: String): Provider<Directory> {
-		return layout.buildDirectory.dir("generated/res/launcher-icon/$flavor/$buildType/res")
 	}
 
 	private fun getGeneratedAppMetadataFile(buildDir: DirectoryProperty, flavor: String, buildType: String): Provider<File> {

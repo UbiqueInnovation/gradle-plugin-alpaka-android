@@ -9,11 +9,9 @@ import ch.ubique.gradle.alpaka.network.DryRunBackendRepository
 import ch.ubique.gradle.alpaka.network.OkHttpInstance
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.file.Directory
 import org.gradle.api.provider.Provider
-import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.Optional
-import org.gradle.api.tasks.TaskAction
+import org.gradle.api.tasks.*
 import org.gradle.api.tasks.options.Option
 import org.gradle.work.DisableCachingByDefault
 import retrofit2.HttpException
@@ -38,8 +36,8 @@ abstract class PublishToAlpakaTask : DefaultTask() {
 	@get:InputFile
 	abstract var appMetadataJsonFile: Provider<File>
 
-	@get:InputFile
-	abstract var apk: Provider<File>
+	@get:InputDirectory
+	abstract var apkDir: Provider<Directory>
 
 	@get:InputFile
 	abstract var webIcon: Provider<File>
@@ -59,7 +57,11 @@ abstract class PublishToAlpakaTask : DefaultTask() {
 			OkHttpInstance.setProxy(null)
 		}
 
-		val apkFile = apk.get()
+		val apkDir = apkDir.get().asFile
+		val apkFile = apkDir.listFiles()
+			?.singleOrNull { it.extension == "apk" }
+			?: throw GradleException("No single APK found in ${apkDir.absolutePath}")
+
 		val webIconFile = webIcon.get()
 
 		val appMetadata = moshi().fromJsonNotNull<AppMetadata>(appMetadataJsonFile.get().readText())
@@ -68,13 +70,13 @@ abstract class PublishToAlpakaTask : DefaultTask() {
 		logger.lifecycle("icon file: ${webIconFile.relativeTo(projectRootDir).path} (${webIconFile.length() / 1024} kB)")
 		logger.lifecycle("metadata:\n${appMetadata.prettyPrint().prependIndent()}")
 
+		val backendRepository = if (dryrun) {
+			DryRunBackendRepository
+		} else {
+			logger.lifecycle("Uploading to Alpaka... .. .")
+			BackendRepository()
+		}
 		try {
-			val backendRepository = if (dryrun) {
-				DryRunBackendRepository
-			} else {
-				logger.lifecycle("Uploading to Alpaka... .. .")
-				BackendRepository()
-			}
 			backendRepository.appsUpload(appMetadata, apkFile, webIconFile, uploadKey)
 		} catch (e: Exception) {
 			val message = if (e is HttpException) {

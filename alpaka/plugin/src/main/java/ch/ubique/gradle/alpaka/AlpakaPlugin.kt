@@ -224,7 +224,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				PublishToAlpakaTask::class.java
 			) { uploadTask ->
 				uploadTask.uploadKey = uploadKey ?: throw GradleException("No alpakaUploadKey specified")
-				uploadTask.apk = variant.artifacts.getApk()
+				uploadTask.apkDir = variant.artifacts.get(SingleArtifact.APK)
 				uploadTask.webIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavorName, buildType)
 				uploadTask.appMetadataJsonFile = getGeneratedAppMetadataFile(project.layout.buildDirectory, flavorName, buildType)
 				uploadTask.proxy = pluginExtension.proxy.orNull

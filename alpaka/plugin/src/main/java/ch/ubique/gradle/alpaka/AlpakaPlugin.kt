@@ -87,7 +87,17 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			flavor.extraProperties.set("alpakaUploadKey", null)
 		}
 
-		// Hook injectMetadataTask into android build process
+		val buildLogicFiles = arrayOf(
+			project.file("build.gradle"),
+			project.file("build.gradle.kts"),
+			project.rootProject.file("build.gradle"),
+			project.rootProject.file("build.gradle.kts"),
+			project.rootProject.file("settings.gradle"),
+			project.rootProject.file("settings.gradle.kts"),
+			project.rootProject.file("gradle/libs.versions.toml"),
+		)
+
+		// Hook compileAlpakaMetadataManifest into android build process
 		androidComponentExtension.onVariants { variant ->
 			val variantName = variant.name
 			val variantNameCapitalized = variantName.capitalize()
@@ -121,43 +131,24 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		androidComponentExtension.onVariants { variant ->
 			val variantName = variant.name
 			val variantNameCapitalized = variantName.capitalize()
-			val flavorName = variant.requireFlavorName()
-			val buildType = variant.requireBuildType()
 			val labelValue = variant.getLauncherIconLabel(androidExtension)
 
 			val doLabelAppIcons = pluginExtension.labelAppIcons.getOrElse(true)
-
-			val launcherIconLabelTask = project.tasks.register(
-				"labelAppIcon$variantNameCapitalized",
-				LauncherIconLabelTask::class.java
-			) { iconTask ->
-				iconTask.variantName = variantName
-				iconTask.buildType = buildType
-				iconTask.labelValue = if (doLabelAppIcons) labelValue else null
-				iconTask.sourceWebIconFile = project.findWebIcon(flavorName)
-				iconTask.manifestFiles = variant.sources.manifests.all
-				iconTask.generatedWebIcon = project.getGeneratedWebIconFile(flavorName, buildType)
-				iconTask.resDirs = variant.sources.requireRes().static.flattened()
-
-				iconTask.buildLogicFiles.from(
-					project.file("build.gradle"),
-					project.file("build.gradle.kts"),
-					project.rootProject.file("build.gradle"),
-					project.rootProject.file("build.gradle.kts"),
-					project.rootProject.file("settings.gradle"),
-					project.rootProject.file("settings.gradle.kts"),
-					project.rootProject.file("gradle/libs.versions.toml"),
-				)
-
-				iconTask.outputs.upToDateWhen { false } // always run the task
-			}
-
 			if (doLabelAppIcons) {
+				val launcherIconLabelTask = project.tasks.register(
+					"labelLauncherIcon$variantNameCapitalized",
+					LauncherIconLabelTask::class.java
+				) { iconTask ->
+					iconTask.labelValue = labelValue
+					iconTask.resDirs = variant.sources.requireRes().static.flattened()
+					iconTask.manifestFiles = variant.sources.manifests.all
+					iconTask.buildLogicFiles.from(*buildLogicFiles)
+				}
 				variant.sources.requireRes().addGeneratedSourceDirectory(launcherIconLabelTask, LauncherIconLabelTask::generatedIconDir)
 			}
 		}
 
-		// Hook alpaka task into android build process
+		// Hook alpaka tasks into android build process
 		androidComponentExtension.onVariants { variant ->
 			val buildType = variant.buildType
 			if (buildType != "release") return@onVariants
@@ -204,6 +195,18 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				project.tasks.named(assembleTaskName) { it.finalizedBy(metadataTask) }
 			}
 
+			val doLabelAppIcons = pluginExtension.labelAppIcons.getOrElse(true)
+			val labelValue = variant.getLauncherIconLabel(androidExtension)
+
+			val webIconLabelTask = project.tasks.register(
+				"labelWebIcon$variantNameCapitalized",
+				WebIconLabelTask::class.java
+			) { iconTask ->
+				iconTask.labelValue = if (doLabelAppIcons) labelValue else null
+				iconTask.sourceWebIconFile = project.findWebIcon(flavorName)
+				iconTask.generatedWebIcon = project.getGeneratedWebIconFile(flavorName, buildType)
+			}
+
 			// publishToAlpaka{$variant} task to only publish to alpaka
 			val publishToAlpakaTaskName = "publishToAlpaka$variantNameCapitalized"
 			project.tasks.register(
@@ -216,6 +219,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				uploadTask.appMetadataJsonFile = project.getGeneratedAppMetadataFile(flavorName, buildType)
 				uploadTask.proxy = pluginExtension.proxy.orNull
 				uploadTask.dryrun = isDryRun
+				uploadTask.dependsOn(webIconLabelTask)
 				// ensure that the compilation tasks are run before, IF they're run
 				uploadTask.mustRunAfter(assembleTaskName, metadataTask)
 			}

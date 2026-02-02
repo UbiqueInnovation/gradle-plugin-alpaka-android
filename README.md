@@ -10,19 +10,20 @@ Upload your app to the Alpaka App Distribution, label your launcher icon with so
 
 The plugin contains the following functionality:
 
-* Enables the generation of the `BuildConfig` class
-* Writes build information as fields to the `BuildConfig` class (see section [Build information](#build-information))
-* Task `injectMetadataIntoManifest<VARIANT>` for each variant that injects the build information into the Android
-  manifest
-* Task `labelAppIcon<VARIANT>` for each variant that generates an app icon with the flavor name as overlay
-* Task `assembleAndPublishToAlpaka<VARIANT>` for each release variant that builds and uploads the APK to the Alpaka backend
-* Task `publishToAlpaka<VARIANT>` for each release variant that uploads the previously built APK to the Alpaka backend
+* Enables the generation of the `BuildConfig` class.
+* Writes build information as fields to the `BuildConfig` class (see section [Build information](#build-information)).
+* Task `compileAlpakaMetadataManifest<VARIANT>` for each variant injects the build information into the Android
+  manifest.
+* Task `compileAlpakaMetadata<VARIANT>` outputs the build information into a JSON file.
+* Task `labelLauncherIcon<VARIANT>` and `labelWebIcon<VARIANT>` generates a launcher and web icon with the flavor name as overlay.
+* Task `assembleAndPublishToAlpaka<VARIANT>` for each release variant builds and uploads the APK to the Alpaka backend.
+* Task `publishToAlpaka<VARIANT>` for each release variant uploads the previously built APK to the Alpaka backend.
 
 ## Configuration
 
 ```kotlin
 plugins {
-    id("ch.ubique.gradle.alpaka") version "8.13.0"
+    id("ch.ubique.gradle.alpaka") version "9.0.0"
 }
 ```
 

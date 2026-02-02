@@ -17,6 +17,11 @@ import java.io.File
 @DisableCachingByDefault
 abstract class CompileAlpakaMetadataTask : DefaultTask() {
 
+	init {
+		group = "alpaka"
+		description = "Generate app metadata JSON file for Alpaka backend"
+	}
+
 	@get:Input
 	abstract var applicationId: Provider<String>
 

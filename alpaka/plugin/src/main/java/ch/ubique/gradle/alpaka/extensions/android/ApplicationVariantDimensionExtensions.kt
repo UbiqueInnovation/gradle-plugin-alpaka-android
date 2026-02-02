@@ -1,4 +1,4 @@
-package ch.ubique.gradle.alpaka.extensions.applicationvariant
+package ch.ubique.gradle.alpaka.extensions.android
 
 import com.android.build.api.dsl.ApplicationVariantDimension
 import org.gradle.api.plugins.ExtensionAware

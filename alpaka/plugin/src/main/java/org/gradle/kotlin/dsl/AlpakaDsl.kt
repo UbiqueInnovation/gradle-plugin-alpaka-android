@@ -1,7 +1,7 @@
 package org.gradle.kotlin.dsl
 
-import ch.ubique.gradle.alpaka.extensions.applicationvariant.getProperty
-import ch.ubique.gradle.alpaka.extensions.applicationvariant.setProperty
+import ch.ubique.gradle.alpaka.extensions.android.getProperty
+import ch.ubique.gradle.alpaka.extensions.android.setProperty
 import com.android.build.api.dsl.ApplicationVariantDimension
 
 var ApplicationVariantDimension.launcherIconLabel: String?

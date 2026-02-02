@@ -1,13 +1,13 @@
-@file:Suppress("DEPRECATION")
-
 package ch.ubique.gradle.alpaka
 
 import ch.ubique.gradle.alpaka.config.AlpakaPluginConfig
+import ch.ubique.gradle.alpaka.extensions.android.getProductFlavors
+import ch.ubique.gradle.alpaka.extensions.android.requireBuildType
+import ch.ubique.gradle.alpaka.extensions.android.requireFlavorName
+import ch.ubique.gradle.alpaka.extensions.android.requireRes
 import ch.ubique.gradle.alpaka.extensions.capitalize
-import ch.ubique.gradle.alpaka.extensions.getMergedManifestFile
-import ch.ubique.gradle.alpaka.extensions.getResDirs
+import ch.ubique.gradle.alpaka.extensions.gradle.flattened
 import ch.ubique.gradle.alpaka.extensions.listFilesOrEmpty
-import ch.ubique.gradle.alpaka.extensions.productflavor.alpakaUploadKey
 import ch.ubique.gradle.alpaka.model.AndroidBuildConfigData
 import ch.ubique.gradle.alpaka.model.AndroidSigningConfigData
 import ch.ubique.gradle.alpaka.sources.BuildTimestampValueSource
@@ -15,37 +15,30 @@ import ch.ubique.gradle.alpaka.sources.GitBranchValueSource
 import ch.ubique.gradle.alpaka.sources.GitCommitLogValueSource
 import ch.ubique.gradle.alpaka.sources.SignatureValueSource
 import ch.ubique.gradle.alpaka.task.*
-import com.android.build.gradle.AppExtension
-import com.android.build.gradle.api.ApplicationVariant
-import com.android.build.gradle.internal.tasks.factory.dependsOn
+import com.android.build.api.artifact.SingleArtifact
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.variant.ApplicationAndroidComponentsExtension
+import com.android.build.api.variant.ApplicationVariant
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.file.Directory
-import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.plugins.ExtensionAware
 import org.gradle.api.provider.Provider
+import org.gradle.kotlin.dsl.alpakaUploadKey
 import org.gradle.kotlin.dsl.launcherIconLabel
-import org.gradle.util.GradleVersion
 import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import java.io.File
-import ch.ubique.gradle.alpaka.extensions.productflavor.launcherIconLabel as flavorLauncherIconLabel
 
 abstract class AlpakaPlugin : Plugin<Project> {
 
-	companion object {
-		private val MIN_GRADLE_VERSION = GradleVersion.version("8.11")
-	}
-
 	override fun apply(project: Project) {
-		GradleVersion.current().let { current ->
-			if (current < MIN_GRADLE_VERSION) {
-				throw GradleException("Alpaka requires at least Gradle ${MIN_GRADLE_VERSION.version}. Currently ${current.version}.")
-			}
-		}
+		Requirements.validateGradleVersion()
+
+		val androidExtension = project.getAndroidExtension()
+		val androidComponentExtension = project.getAndroidComponentsExtension()
+		Requirements.validateAgpVersion(androidComponentExtension)
 
 		val pluginExtension = project.extensions.create("alpaka", AlpakaPluginConfig::class.java, project)
-		val androidExtension = getAndroidExtension(project)
 
 		// The build ID is a unique ID for each build
 		val buildId = project.findProperty("build_id")?.toString() ?: project.findProperty("ubappid")?.toString() ?: "localbuild"
@@ -94,41 +87,38 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			flavor.extraProperties.set("alpakaUploadKey", null)
 		}
 
-		// Hook injectMetadataTask into android build process
-		project.afterEvaluate {
-			androidExtension.applicationVariants.configureEach { variant ->
-				val variantName = variant.name
-				val variantNameCapitalized = variantName.capitalize()
-				val flavor = variant.flavorName
-				val buildType = variant.buildType.name
+		val buildLogicFiles = arrayOf(
+			project.file("build.gradle"),
+			project.file("build.gradle.kts"),
+			project.rootProject.file("build.gradle"),
+			project.rootProject.file("build.gradle.kts"),
+			project.rootProject.file("settings.gradle"),
+			project.rootProject.file("settings.gradle.kts"),
+			project.rootProject.file("gradle/libs.versions.toml"),
+		)
 
-				val injectManifestTask = project.tasks.register(
-					"injectMetadataIntoManifest$variantNameCapitalized",
-					InjectMetadataIntoManifestTask::class.java
-				) { manifestTask ->
-					val mergedManifestFile = project.getMergedManifestFile(variantName)
-					manifestTask.mergedManifestFile = mergedManifestFile
-					manifestTask.variantName = variantName
-					manifestTask.flavor = flavor
-					manifestTask.buildType = buildType
-					manifestTask.buildId = buildId
-					manifestTask.buildNumber = buildNumber
-					manifestTask.buildBatch = buildBatch
-					manifestTask.buildTimestamp = buildTimestampProvider
-					manifestTask.buildBranch = vcsBranchProvider
-					manifestTask.outputs.file(mergedManifestFile)
-				}
+		// Hook compileAlpakaMetadataManifest into android build process
+		androidComponentExtension.onVariants { variant ->
+			val variantName = variant.name
+			val variantNameCapitalized = variantName.capitalize()
+			val flavor = variant.requireFlavorName()
+			val buildType = variant.requireBuildType()
 
-				variant.outputs.forEach { output ->
-					output.processManifestProvider.configure { it.finalizedBy(injectManifestTask) }
-				}
-				project.tasks.named("process${variantNameCapitalized}ManifestForPackage") {
-					it.dependsOn(injectManifestTask)
-				}
-				project.tasks.named("processApplicationManifest${variantNameCapitalized}ForBundle") {
-					it.dependsOn(injectManifestTask)
-				}
+			val metadataManifestTask = project.tasks.register(
+				"compileAlpakaMetadataManifest$variantNameCapitalized",
+				MetadataManifestTask::class.java
+			) { manifestTask ->
+				manifestTask.variantName = variantName
+				manifestTask.flavor = flavor
+				manifestTask.buildType = buildType
+				manifestTask.buildId = buildId
+				manifestTask.buildNumber = buildNumber
+				manifestTask.buildBatch = buildBatch
+				manifestTask.buildTimestamp = buildTimestampProvider
+				manifestTask.buildBranch = vcsBranchProvider
 			}
+
+			variant.sources.manifests.addGeneratedManifestFile(metadataManifestTask, MetadataManifestTask::manifestFile)
 		}
 
 		androidExtension.productFlavors.configureEach { flavor ->
@@ -137,220 +127,195 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			flavor.launcherIconLabel = if (flavorName == "prod") null else flavorName
 		}
 
-		project.afterEvaluate {
-			// Hook labelAppIcon task into android build process
+		// Hook labelAppIcon task into android build process
+		androidComponentExtension.onVariants { variant ->
+			val variantName = variant.name
+			val variantNameCapitalized = variantName.capitalize()
+			val labelValue = variant.getLauncherIconLabel(androidExtension)
+
 			val doLabelAppIcons = pluginExtension.labelAppIcons.getOrElse(true)
-			androidExtension.applicationVariants.configureEach { variant ->
-				val variantName = variant.name
-				val variantNameCapitalized = variantName.capitalize()
-				val flavorName = variant.flavorName
-				val productFlavors = variant.productFlavors.map { it.name }
-				val buildType = variant.buildType.name
-				val labelValue = getLauncherIconLabel(variant, androidExtension)
-
-				if (doLabelAppIcons) {
-					// make sure generated sources are used by build process
-					// Add generated icon path to res-SourceSet. This must be here otherwise it is too late!
-					val sourceSet = androidExtension.sourceSets.maybeCreate(variantName)
-					sourceSet.res.srcDir(getGeneratedIconDir(project.layout.buildDirectory, flavorName, buildType))
-				}
-
+			if (doLabelAppIcons) {
 				val launcherIconLabelTask = project.tasks.register(
-					"labelAppIcon$variantNameCapitalized",
+					"labelLauncherIcon$variantNameCapitalized",
 					LauncherIconLabelTask::class.java
 				) { iconTask ->
-					iconTask.variantName = variantName
-					iconTask.buildType = buildType
-					iconTask.labelValue = if (doLabelAppIcons) labelValue else null
-					iconTask.sourceWebIconFile = project.provider { findWebIcon(project.projectDir, flavorName) }
-					iconTask.mergedManifestFile = project.getMergedManifestFile(variantName)
-					iconTask.generatedWebIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavorName, buildType)
-					iconTask.generatedIconDir = getGeneratedIconDir(project.layout.buildDirectory, flavorName, buildType)
-
-					val flavorNames = setOf(flavorName) + productFlavors
-					iconTask.resDirs.from(project.getResDirs(flavorNames))
-
-					iconTask.buildLogicFiles.from(
-						project.file("build.gradle"),
-						project.file("build.gradle.kts"),
-						project.rootProject.file("build.gradle"),
-						project.rootProject.file("build.gradle.kts"),
-						project.rootProject.file("settings.gradle"),
-						project.rootProject.file("settings.gradle.kts"),
-						project.rootProject.file("gradle/libs.versions.toml"),
-					)
-
-					iconTask.outputs.upToDateWhen { false } // always run the task
-
-					iconTask.mustRunAfter(project.tasks.named("injectMetadataIntoManifest$variantNameCapitalized"))
+					iconTask.labelValue = labelValue
+					iconTask.resDirs = variant.sources.requireRes().static.flattened()
+					iconTask.manifestFiles = variant.sources.manifests.all
+					iconTask.buildLogicFiles.from(*buildLogicFiles)
 				}
+				variant.sources.requireRes().addGeneratedSourceDirectory(launcherIconLabelTask, LauncherIconLabelTask::generatedIconDir)
+			}
+		}
 
-				project.tasks.named("map${variantNameCapitalized}SourceSetPaths") { it.dependsOn(launcherIconLabelTask) }
-				project.tasks.named("generate${variantNameCapitalized}Resources") { it.dependsOn(launcherIconLabelTask) }
-				project.tasks.named("process${variantNameCapitalized}NavigationResources") { it.dependsOn(launcherIconLabelTask) }
-				project.tasks.matching { it.name == "extract${variantNameCapitalized}SupportedLocales" }
-					.configureEach { it.dependsOn(launcherIconLabelTask) }
-				variant.outputs.forEach { output ->
-					launcherIconLabelTask.dependsOn(output.processManifestProvider)
-				}
+		// Hook alpaka tasks into android build process
+		androidComponentExtension.onVariants { variant ->
+			val buildType = variant.buildType
+			if (buildType != "release") return@onVariants
+
+			val isDryRun = project.findProperty("alpakaDryrun")?.toString()?.toBoolean() ?: false
+
+			val variantName = variant.name
+			val variantNameCapitalized = variantName.capitalize()
+			val flavorName = variant.requireFlavorName()
+			val uploadKey = variant.getUploadKey(androidExtension)
+
+			val assembleTaskName = "assemble$variantNameCapitalized"
+
+			// compileAlpakaMetadata{$variant} task to compile alpaka mata data
+			val metadataTask = project.tasks.register(
+				"compileAlpakaMetadata$variantNameCapitalized",
+				CompileAlpakaMetadataTask::class.java
+			) { metadataTask ->
+				metadataTask.applicationId = variant.applicationId
+				metadataTask.flavorName = flavorName
+				metadataTask.androidConfig = AndroidBuildConfigData(
+					minSdk = requireNotNull(androidExtension.defaultConfig.minSdk),
+					targetSdk = requireNotNull(androidExtension.defaultConfig.targetSdk),
+					versionName = requireNotNull(androidExtension.defaultConfig.versionName),
+					versionCode = androidExtension.defaultConfig.versionCode?.toLong() ?: 0L,
+				)
+				metadataTask.signature = project.getSignatureProvider(variant, androidExtension)
+
+				metadataTask.resDirs = variant.sources.requireRes().all.flattened()
+
+				val mergedManifest = variant.artifacts.get(SingleArtifact.MERGED_MANIFEST)
+				metadataTask.mergedManifestFile.set(mergedManifest)
+				val commitCount = pluginExtension.changelogCommitCount.orElse(10).get()
+				metadataTask.vcsCommitHistory = project.getGitCommitLogProvider(commitCount)
+				metadataTask.vcsBranch = vcsBranchProvider
+				metadataTask.vcsCommitHash = vcsCommitHash
+				metadataTask.buildId = buildId
+				metadataTask.buildNumber = buildNumber
+				metadataTask.buildTime = buildTimestampProvider
+				metadataTask.buildBatch = buildBatch
+				metadataTask.metadataFile = project.getGeneratedAppMetadataFile(flavorName, buildType)
+			}
+			project.afterEvaluate {
+				project.tasks.named(assembleTaskName) { it.finalizedBy(metadataTask) }
 			}
 
-			// Hook alpaka task into android build process
-			androidExtension.applicationVariants.configureEach { variant ->
-				val buildType = variant.buildType.name
-				if (buildType != "release") return@configureEach
+			val doLabelAppIcons = pluginExtension.labelAppIcons.getOrElse(true)
+			val labelValue = variant.getLauncherIconLabel(androidExtension)
 
-				val isDryRun = project.findProperty("alpakaDryrun")?.toString()?.toBoolean() ?: false
+			val webIconLabelTask = project.tasks.register(
+				"labelWebIcon$variantNameCapitalized",
+				WebIconLabelTask::class.java
+			) { iconTask ->
+				iconTask.labelValue = if (doLabelAppIcons) labelValue else null
+				iconTask.sourceWebIconFile = project.findWebIcon(flavorName)
+				iconTask.generatedWebIcon = project.getGeneratedWebIconFile(flavorName, buildType)
+			}
 
-				val variantName = variant.name
-				val variantNameCapitalized = variantName.capitalize()
-				val flavor = variant.flavorName
-				val uploadKey = getUploadKey(variant, androidExtension)
+			// publishToAlpaka{$variant} task to only publish to alpaka
+			val publishToAlpakaTaskName = "publishToAlpaka$variantNameCapitalized"
+			project.tasks.register(
+				publishToAlpakaTaskName,
+				PublishToAlpakaTask::class.java
+			) { uploadTask ->
+				uploadTask.uploadKey = uploadKey ?: throw GradleException("No alpakaUploadKey specified")
+				uploadTask.apkDir = variant.artifacts.get(SingleArtifact.APK)
+				uploadTask.webIcon = project.getGeneratedWebIconFile(flavorName, buildType)
+				uploadTask.appMetadataJsonFile = project.getGeneratedAppMetadataFile(flavorName, buildType)
+				uploadTask.proxy = pluginExtension.proxy.orNull
+				uploadTask.dryrun = isDryRun
+				uploadTask.dependsOn(webIconLabelTask)
+				// ensure that the compilation tasks are run before, IF they're run
+				uploadTask.mustRunAfter(assembleTaskName, metadataTask)
+			}
 
-				val assembleTaskName = "assemble$variantNameCapitalized"
+			// assembleAndPublishToAlpaka{$variant} task to assemble and publish to alpaka
+			val assembleAndPublishToAlpakaTaskName = "assembleAndPublishToAlpaka$variantNameCapitalized"
+			project.tasks.register(
+				assembleAndPublishToAlpakaTaskName,
+				AssembleAndPublishToAlpakaTask::class.java
+			) { assembleAndPublishTask ->
+				assembleAndPublishTask.dryrun = isDryRun
+				assembleAndPublishTask.dependsOn(assembleTaskName, publishToAlpakaTaskName)
+			}
 
-				// compileAlpakaMetadata{$variant} task to compile alpaka mata data
-				val metadataTask = project.tasks.register(
-					"compileAlpakaMetadata$variantNameCapitalized",
-					CompileAlpakaMetadataTask::class.java
-				) { metadataTask ->
-					metadataTask.flavorName = variant.flavorName
-					metadataTask.androidConfig = AndroidBuildConfigData(
-						minSdk = requireNotNull(androidExtension.defaultConfig.minSdk),
-						targetSdk = requireNotNull(androidExtension.defaultConfig.targetSdk),
-						versionName = requireNotNull(androidExtension.defaultConfig.versionName),
-						versionCode = androidExtension.defaultConfig.versionCode?.toLong() ?: 0L,
-						applicationId = variant.applicationId,
-					)
-
-					metadataTask.signature = project.getSignatureProvider(variant)
-
-					val resDirs = project.getResDirs(variant.flavorName) +
-							project.layout.buildDirectory.file("generated/res/resValues/${variant.flavorName}/${variant.buildType.name}").get().asFile
-					metadataTask.resDirs.from(resDirs)
-
-					metadataTask.mergedManifestFile = project.getMergedManifestFile(variantName)
-					val commitCount = pluginExtension.changelogCommitCount.orElse(10).get()
-					metadataTask.vcsCommitHistory = project.getGitCommitLogProvider(commitCount)
-					metadataTask.vcsBranch = vcsBranchProvider
-					metadataTask.vcsCommitHash = vcsCommitHash
-					metadataTask.buildId = buildId
-					metadataTask.buildNumber = buildNumber
-					metadataTask.buildTime = buildTimestampProvider
-					metadataTask.buildBatch = buildBatch
-					metadataTask.metadataFile = getGeneratedAppMetadataFile(project.layout.buildDirectory, flavor, buildType)
-				}
-				project.tasks.named(assembleTaskName) { it.finalizedBy(metadataTask) }
-
-				// publishToAlpaka{$variant} task to only publish to alpaka
-				val publishToAlpakaTaskName = "publishToAlpaka$variantNameCapitalized"
-				project.tasks.register(
-					publishToAlpakaTaskName,
-					PublishToAlpakaTask::class.java
-				) { uploadTask ->
-					uploadTask.uploadKey = uploadKey ?: throw GradleException("No alpakaUploadKey specified")
-					uploadTask.apk = project.provider { variant.outputs.first().outputFile }
-					uploadTask.webIcon = getGeneratedWebIconFile(project.layout.buildDirectory, flavor, buildType)
-					uploadTask.appMetadataJsonFile = getGeneratedAppMetadataFile(project.layout.buildDirectory, flavor, buildType)
-					uploadTask.proxy = pluginExtension.proxy.orNull
-					uploadTask.dryrun = isDryRun
-					// ensure that the compilation tasks are run before, IF they're run
-					uploadTask.mustRunAfter(assembleTaskName, metadataTask)
-				}
-
-				// assembleAndPublishToAlpaka{$variant} task to assemble and publish to alpaka
-				val assembleAndPublishToAlpakaTaskName = "assembleAndPublishToAlpaka$variantNameCapitalized"
-				project.tasks.register(
-					assembleAndPublishToAlpakaTaskName,
-					AssembleAndPublishToAlpakaTask::class.java
-				) { assembleAndPublishTask ->
-					assembleAndPublishTask.dryrun = isDryRun
-					assembleAndPublishTask.dependsOn(assembleTaskName, publishToAlpakaTaskName)
-				}
-
-				// uploadToAlpaka{$variant} deprecated task to assemble and publish to alpaka, kept for backwards compatibility reasons
-				val legacyUploadTaskName = "uploadToAlpaka$variantNameCapitalized"
-				project.tasks.register(
-					legacyUploadTaskName,
-					UploadToAlpakaBackendTask::class.java
-				) { uploadTask ->
-					uploadTask.description = "deprecated, use $assembleAndPublishToAlpakaTaskName instead"
-					uploadTask.dependsOn(assembleAndPublishToAlpakaTaskName)
-					uploadTask.doFirst {
-						uploadTask.logger.warn("Task '${uploadTask.name}' is deprecated. Use '$assembleAndPublishToAlpakaTaskName' instead.")
-					}
+			// uploadToAlpaka{$variant} deprecated task to assemble and publish to alpaka, kept for backwards compatibility reasons
+			val legacyUploadTaskName = "uploadToAlpaka$variantNameCapitalized"
+			@Suppress("DEPRECATION")
+			project.tasks.register(
+				legacyUploadTaskName,
+				UploadToAlpakaBackendTask::class.java
+			) { uploadTask ->
+				uploadTask.description = "deprecated, use $assembleAndPublishToAlpakaTaskName instead"
+				uploadTask.dependsOn(assembleAndPublishToAlpakaTaskName)
+				uploadTask.doFirst {
+					uploadTask.logger.warn("Task '${uploadTask.name}' is deprecated. Use '$assembleAndPublishToAlpakaTaskName' instead.")
 				}
 			}
 		}
 	}
 
-	private fun getAndroidExtension(project: Project): AppExtension {
-		val ext = project.extensions.findByType(AppExtension::class.java)
-			?: throw GradleException("Android gradle plugin extension has not been applied before")
-		return ext
+	private fun Project.getAndroidExtension(): ApplicationExtension {
+		return extensions.findByType(ApplicationExtension::class.java)
+			?: throw GradleException("Android Gradle Plugin has not been applied before")
+	}
+
+	private fun Project.getAndroidComponentsExtension(): ApplicationAndroidComponentsExtension {
+		return extensions.findByType(ApplicationAndroidComponentsExtension::class.java)
+			?: throw GradleException("Android Gradle Plugin has not been applied before")
 	}
 
 	private fun Project.getBuildTimestampProvider(): Provider<Long> {
-		return project.providers.of(BuildTimestampValueSource::class.java) {}
+		return providers.of(BuildTimestampValueSource::class.java) {}
 	}
 
-	private fun Project.getSignatureProvider(variant: ApplicationVariant): Provider<String> {
-		return project.providers.of(SignatureValueSource::class.java) {
-			it.parameters.signingConfig = project.provider {
-				variant.signingConfig?.let { config ->
-					AndroidSigningConfigData(
-						config.storeType,
-						config.storeFile,
-						config.storePassword,
-						config.keyAlias,
-						config.keyPassword
-					)
+	private fun Project.getSignatureProvider(variant: ApplicationVariant, androidExtension: ApplicationExtension): Provider<String> {
+		return providers.of(SignatureValueSource::class.java) {
+			it.parameters.signingConfig = provider {
+				val buildTypeName = variant.buildType ?: return@provider null
+				val buildType = androidExtension.buildTypes.findByName(buildTypeName)
+				buildType?.signingConfig?.run {
+					AndroidSigningConfigData(storeType, storeFile, storePassword, keyAlias, keyPassword)
 				}
 			}
 		}
 	}
 
 	private fun Project.getGitBranchProvider(): Provider<String> {
-		return project.providers.of(GitBranchValueSource::class.java) {
-			it.parameters.projectDirProvider = project.provider { project.rootProject.projectDir }
+		return providers.of(GitBranchValueSource::class.java) {
+			it.parameters.projectDirProvider = provider { rootProject.projectDir }
 		}
 	}
 
 	private fun Project.getGitCommitLogProvider(numOfCommits: Int): Provider<String> {
-		return project.providers.of(GitCommitLogValueSource::class.java) {
-			it.parameters.projectDirProvider = project.provider { project.rootProject.projectDir }
-			it.parameters.numOfCommits = project.provider { numOfCommits }
+		return providers.of(GitCommitLogValueSource::class.java) {
+			it.parameters.projectDirProvider = provider { rootProject.projectDir }
+			it.parameters.numOfCommits = provider { numOfCommits }
 		}
 	}
 
-	private fun findWebIcon(moduleDir: File, flavor: String): File {
-		val dirs = sequenceOf(File(moduleDir, "src/$flavor"), File(moduleDir, "src/main"), moduleDir)
-		return dirs
-			.flatMap { it.listFilesOrEmpty() }
-			.find { it.name.matches(Regex(".*(web|playstore|512)\\.(png|webp)")) }
-			?: throw GradleException("Must provide web icon matching (web|playstore|512).(png|webp) in one of the following locations:\n  ${dirs.joinToString()}")
+	private fun Project.findWebIcon(flavor: String): Provider<File> {
+		return project.provider {
+			val moduleDir = project.projectDir
+			val dirs = sequenceOf(File(moduleDir, "src/$flavor"), File(moduleDir, "src/main"), moduleDir)
+			dirs.flatMap { it.listFilesOrEmpty() }
+				.find { it.name.matches(Regex(".*(web|playstore|512)\\.(png|webp)")) }
+				?: throw GradleException("Must provide web icon matching (web|playstore|512).(png|webp) in one of the following locations:\n  ${dirs.joinToString()}")
+		}
 	}
 
-	private fun getGeneratedWebIconFile(buildDir: DirectoryProperty, flavor: String, buildType: String): Provider<File> {
-		return buildDir.file("outputs/launcher-icon/$flavor/$buildType/web-icon.png").map { it.asFile }
+	private fun Project.getGeneratedWebIconFile(flavor: String, buildType: String): Provider<File> {
+		return layout.buildDirectory.file("outputs/launcher-icon/$flavor/$buildType/web-icon.png").map { it.asFile }
 	}
 
-	private fun getGeneratedIconDir(buildDir: DirectoryProperty, flavor: String, buildType: String): Provider<Directory> {
-		return buildDir.dir("generated/res/launcher-icon/$flavor/$buildType/res")
+	private fun Project.getGeneratedAppMetadataFile(flavor: String, buildType: String): Provider<File> {
+		return layout.buildDirectory.file("outputs/alpaka/$flavor/$buildType/metadata.json").map { it.asFile }
 	}
 
-	private fun getGeneratedAppMetadataFile(buildDir: DirectoryProperty, flavor: String, buildType: String): Provider<File> {
-		return buildDir.file("outputs/alpaka/$flavor/$buildType/metadata.json").map { it.asFile }
-	}
-
-	private fun getUploadKey(applicationVariant: ApplicationVariant, androidExtension: AppExtension): String? {
-		val productFlavor = applicationVariant.productFlavors.firstOrNull()
+	private fun ApplicationVariant.getUploadKey(androidExtension: ApplicationExtension): String? {
+		val productFlavor = getProductFlavors(androidExtension).firstOrNull()
 		return productFlavor?.alpakaUploadKey ?: androidExtension.defaultConfig.alpakaUploadKey
 	}
 
-	private fun getLauncherIconLabel(applicationVariant: ApplicationVariant, androidExtension: AppExtension): String? {
-		return applicationVariant.productFlavors.firstNotNullOfOrNull { it.flavorLauncherIconLabel }
-			?: androidExtension.defaultConfig.launcherIconLabel
+	private fun ApplicationVariant.getLauncherIconLabel(androidExtension: ApplicationExtension): String? {
+		val productFlavors = getProductFlavors(androidExtension)
+		val flavorLabel = productFlavors.firstNotNullOfOrNull { it.launcherIconLabel }
+		return flavorLabel ?: androidExtension.defaultConfig.launcherIconLabel
 	}
 
 }

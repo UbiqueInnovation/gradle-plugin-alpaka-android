@@ -1,5 +1,3 @@
-@file:Suppress("DEPRECATION")
-
 package ch.ubique.gradle.alpaka.task
 
 import ch.ubique.gradle.alpaka.extensions.moshi
@@ -9,7 +7,8 @@ import ch.ubique.gradle.alpaka.model.AppMetadata
 import ch.ubique.gradle.alpaka.utils.ManifestUtils
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
-import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.Directory
+import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import org.gradle.work.DisableCachingByDefault
@@ -17,6 +16,14 @@ import java.io.File
 
 @DisableCachingByDefault
 abstract class CompileAlpakaMetadataTask : DefaultTask() {
+
+	init {
+		group = "alpaka"
+		description = "Generate app metadata JSON file for Alpaka backend"
+	}
+
+	@get:Input
+	abstract var applicationId: Provider<String>
 
 	@get:Input
 	abstract var flavorName: String
@@ -51,24 +58,27 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 
 	@get:InputFiles
 	@get:PathSensitive(PathSensitivity.RELATIVE)
-	abstract val resDirs: ConfigurableFileCollection
+	abstract var resDirs: Provider<List<Directory>>
 
 	@get:InputFile
-	abstract var mergedManifestFile: Provider<File>
+	@get:PathSensitive(PathSensitivity.RELATIVE)
+	abstract val mergedManifestFile: RegularFileProperty
 
 	@get:OutputFile
 	abstract var metadataFile: Provider<File>
 
 	@TaskAction
 	fun compileAction() {
-		val manifestFile = mergedManifestFile.get()
+		val manifestFile = mergedManifestFile.get().asFile
 
-		val appName = ManifestUtils.findAppName(logger, resDirs.files.toList(), manifestFile)
+		val resDirs = resDirs.get().map { it.asFile }
+
+		val appName = ManifestUtils.findAppName(logger, resDirs, manifestFile)
 			?: throw GradleException(
 				"""
 				Failed to find app name in string resources.
 				Manifest location: ${manifestFile.absolutePath}
-				Resource directories: ${resDirs.files.joinToString { it.absolutePath }}
+				Resource directories: ${resDirs.joinToString { it.absolutePath }}
 				""".trimIndent()
 			)
 
@@ -76,7 +86,7 @@ abstract class CompileAlpakaMetadataTask : DefaultTask() {
 
 		val appMetadata = AppMetadata(
 			appName = appName,
-			packageName = androidConfig.applicationId,
+			packageName = applicationId.get(),
 			flavor = flavorName,
 			branch = vcsBranch.get(),
 			minSdk = androidConfig.minSdk,

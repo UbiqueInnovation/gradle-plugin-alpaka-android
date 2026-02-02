@@ -12,14 +12,14 @@ import java.security.cert.Certificate
  * and
  * https://cs.android.com/android-studio/platform/tools/base/+/mirror-goog-studio-main:sdk-common/src/main/java/com/android/ide/common/signing/KeystoreHelper.java;l=217
  */
-class SigningConfigUtils(private val logger: Logger) {
+internal class SigningConfigUtils(private val logger: Logger) {
 
 	fun getSignature(signingConfig: AndroidSigningConfigData): String? {
 		return try {
 			val certificate = getCertificate(signingConfig)
 			getFingerprint(certificate, "MD5")
 		} catch (e: Exception) {
-			logger.info("Failed to get MD5 signature for certificate", e)
+			logger.warn("Failed to get MD5 signature for certificate", e)
 			null
 		}
 	}

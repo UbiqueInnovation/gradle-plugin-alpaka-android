@@ -12,11 +12,11 @@ import retrofit2.Retrofit
 import retrofit2.converter.scalars.ScalarsConverterFactory
 import java.io.File
 
-interface BackendRepositoryInterface {
+internal interface BackendRepositoryInterface {
 	fun appsUpload(appMetadata: AppMetadata, apk: File, appIcon: File, uploadKey: String)
 }
 
-class BackendRepository : BackendRepositoryInterface {
+internal class BackendRepository : BackendRepositoryInterface {
 
 	companion object {
 
@@ -70,6 +70,6 @@ class BackendRepository : BackendRepositoryInterface {
 
 }
 
-object DryRunBackendRepository : BackendRepositoryInterface {
+internal object DryRunBackendRepository : BackendRepositoryInterface {
 	override fun appsUpload(appMetadata: AppMetadata, apk: File, appIcon: File, uploadKey: String) = Unit
 }

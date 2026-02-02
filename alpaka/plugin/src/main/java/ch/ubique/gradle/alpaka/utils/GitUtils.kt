@@ -3,7 +3,7 @@ package ch.ubique.gradle.alpaka.utils
 import java.io.BufferedReader
 import java.io.File
 
-object GitUtils {
+internal object GitUtils {
 
 	fun obtainBranch(projectDir: File): String {
 		val gitCommand = listOf(

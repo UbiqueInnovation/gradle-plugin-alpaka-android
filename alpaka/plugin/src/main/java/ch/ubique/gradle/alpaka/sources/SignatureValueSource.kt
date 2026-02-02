@@ -7,12 +7,12 @@ import org.gradle.api.provider.Provider
 import org.gradle.api.provider.ValueSource
 import org.gradle.api.provider.ValueSourceParameters
 
-abstract class SignatureValueSource : ValueSource<String, SignatureValueSource.Parameters> {
+internal abstract class SignatureValueSource : ValueSource<String, SignatureValueSource.Parameters> {
 
 	private val logger = Logging.getLogger(SignatureValueSource::class.java)
 
 	interface Parameters : ValueSourceParameters {
-		var signingConfig : Provider<AndroidSigningConfigData?>
+		var signingConfig : Provider<AndroidSigningConfigData>
 	}
 
 	override fun obtain(): String {

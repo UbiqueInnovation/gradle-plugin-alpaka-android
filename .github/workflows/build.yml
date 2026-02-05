@@ -8,7 +8,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: ["examplekts", "examplegroovy"]
+        module: ["exampleKts", "exampleGroovy"]
         task: ["assemble", "assembleAndPublishToAlpakaTeschtRelease -PalpakaDryrun=true"]
     steps:
       # Checkout repository

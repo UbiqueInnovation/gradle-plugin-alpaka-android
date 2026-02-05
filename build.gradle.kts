@@ -11,8 +11,8 @@ tasks.register("clean", Delete::class.java) {
 tasks.register("preMerge") {
     description = "Runs all the tests/verification tasks on both top level and included build."
 
-    dependsOn(":examplekts:check")
-    dependsOn(":examplegroovy:check")
+    dependsOn(":exampleKts:check")
+    dependsOn(":exampleGroovy:check")
     dependsOn(gradle.includedBuild("alpaka").task(":plugin:check"))
     dependsOn(gradle.includedBuild("alpaka").task(":plugin:validatePlugins"))
 }

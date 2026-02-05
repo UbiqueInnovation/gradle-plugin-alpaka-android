@@ -19,5 +19,5 @@ dependencyResolutionManagement {
 rootProject.name = "gradle-plugin-alpaka-android"
 
 includeBuild("alpaka")
-include(":exampleKts2")
-include(":exampleGroovy2")
+include(":exampleKts")
+include(":exampleGroovy")

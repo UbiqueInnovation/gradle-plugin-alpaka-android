@@ -22,6 +22,9 @@ internal object GitUtils {
 	}
 
 	fun obtainLastCommits(projectDir: File, numOfCommits: Int): String {
+		// Try to unshallow the repository if it's a shallow clone (common in CI environments like Jenkins)
+		tryUnshallowRepository(projectDir, numOfCommits)
+
 		val gitCommand = listOf(
 			"git",
 			"log",
@@ -35,6 +38,26 @@ internal object GitUtils {
 			.start()
 
 		return process.inputStream.bufferedReader().use(BufferedReader::readText).trim()
+	}
+
+	private fun tryUnshallowRepository(projectDir: File, numOfCommits: Int) {
+		// Check if this is a shallow clone
+		val isShallowCommand = listOf("git", "rev-parse", "--is-shallow-repository")
+		val isShallowProcess = ProcessBuilder(isShallowCommand)
+			.directory(projectDir)
+			.redirectErrorStream(true)
+			.start()
+		val isShallow = isShallowProcess.inputStream.bufferedReader().use(BufferedReader::readText).trim() == "true"
+
+		if (isShallow) {
+			// Fetch additional commits to deepen the shallow clone
+			val deepenCommand = listOf("git", "fetch", "--deepen=$numOfCommits")
+			ProcessBuilder(deepenCommand)
+				.directory(projectDir)
+				.redirectErrorStream(true)
+				.start()
+				.waitFor()
+		}
 	}
 
 }

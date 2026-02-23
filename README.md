@@ -50,7 +50,7 @@ android {
 alpaka {
     labelAppIcons = false // Globally configure the generateAppIcon tasks to label with flavor name (default is enabled)
     gitCommitCount = 10 // The number of commits to include in the changelog (defaults to 10)
-    gitFetchAllowed = false // Fetch the necessary commit history if it's a shallow copy (defaults to false)
+    gitFetchAllowed = false // Fetch the necessary commit history if it's a shallow clone (defaults to false)
     proxy = "host:port" // An optional proxy to set for the upload task
 }
 ```

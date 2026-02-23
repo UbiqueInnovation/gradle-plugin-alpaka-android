@@ -181,8 +181,9 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 				val mergedManifest = variant.artifacts.get(SingleArtifact.MERGED_MANIFEST)
 				metadataTask.mergedManifestFile.set(mergedManifest)
-				val commitCount = pluginExtension.changelogCommitCount.orElse(10).get()
-				metadataTask.vcsCommitHistory = project.getGitCommitLogProvider(commitCount)
+				val commitCount = pluginExtension.gitCommitCount.getOrElse(10)
+				val allowGitFetch = pluginExtension.gitFetchAllowed.getOrElse(false)
+				metadataTask.vcsCommitHistory = project.getGitCommitLogProvider(commitCount, allowGitFetch)
 				metadataTask.vcsBranch = vcsBranchProvider
 				metadataTask.vcsCommitHash = vcsCommitHash
 				metadataTask.buildId = buildId
@@ -283,10 +284,11 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		}
 	}
 
-	private fun Project.getGitCommitLogProvider(numOfCommits: Int): Provider<String> {
+	private fun Project.getGitCommitLogProvider(numOfCommits: Int, allowFetch: Boolean): Provider<String> {
 		return providers.of(GitCommitLogValueSource::class.java) {
 			it.parameters.projectDirProvider = provider { rootProject.projectDir }
 			it.parameters.numOfCommits = provider { numOfCommits }
+			it.parameters.allowFetch = provider { allowFetch }
 		}
 	}
 

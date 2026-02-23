@@ -10,7 +10,9 @@ abstract class AlpakaPluginConfig
 constructor(project: Project) {
 	private val objects = project.objects
 
-	val changelogCommitCount: Property<Int> = objects.property(Int::class.java)
+	val gitCommitCount: Property<Int> = objects.property(Int::class.java)
+
+	val gitFetchAllowed: Property<Boolean> = objects.property(Boolean::class.java)
 
 	val proxy: Property<String> = objects.property(String::class.java)
 

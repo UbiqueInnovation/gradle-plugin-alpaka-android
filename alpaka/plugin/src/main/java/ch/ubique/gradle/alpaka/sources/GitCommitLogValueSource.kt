@@ -11,12 +11,14 @@ abstract class GitCommitLogValueSource : ValueSource<String, GitCommitLogValueSo
 	interface Parameters : ValueSourceParameters {
 		var projectDirProvider: Provider<File>
 		var numOfCommits: Provider<Int>
+		var allowFetch: Provider<Boolean>
 	}
 
 	override fun obtain(): String? {
 		val projectDir = parameters.projectDirProvider.get()
 		val numOfCommits = parameters.numOfCommits.get()
-		return GitUtils.obtainLastCommits(projectDir, numOfCommits)
+		val allowFetch = parameters.allowFetch.get()
+		return GitUtils.obtainLastCommits(projectDir, numOfCommits, allowFetch)
 	}
 
 }

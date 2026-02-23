@@ -69,5 +69,6 @@ dependencies {
 
 alpaka {
 	labelAppIcons = true
-	changelogCommitCount = 5
+	gitCommitCount = 8
+	gitFetchAllowed = true
 }

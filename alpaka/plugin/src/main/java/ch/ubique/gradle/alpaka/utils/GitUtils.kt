@@ -19,7 +19,7 @@ internal object GitUtils {
 
 	fun obtainLastCommits(projectDir: File, numOfCommits: Int, allowFetch: Boolean): String {
 		// Try to unshallow the repository if it's a shallow clone (common in CI environments like Jenkins)
-		if (allowFetch) {
+		if (numOfCommits > 1 && allowFetch) {
 			tryUnshallowRepository(projectDir, numOfCommits)
 		}
 		val gitCommand = listOf(

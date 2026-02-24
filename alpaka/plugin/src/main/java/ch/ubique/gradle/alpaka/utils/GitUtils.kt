@@ -1,9 +1,11 @@
 package ch.ubique.gradle.alpaka.utils
 
-import java.io.BufferedReader
+import org.gradle.api.logging.Logging
 import java.io.File
 
 internal object GitUtils {
+
+	private val logger = Logging.getLogger(GitUtils::class.java)
 
 	fun obtainBranch(projectDir: File): String {
 		val gitCommand = listOf(
@@ -12,19 +14,14 @@ internal object GitUtils {
 			"--abbrev-ref",
 			"HEAD",
 		)
-		val process = ProcessBuilder(gitCommand)
-			.directory(projectDir)
-			.redirectErrorStream(true)
-			.start()
-
-		val branchName = process.inputStream.bufferedReader().use(BufferedReader::readText).trim()
-		return branchName.takeIf { it.isNotEmpty() } ?: "develop"
+		return ProcessUtils.exec(gitCommand, projectDir, logger).getOrDefault("")
 	}
 
-	fun obtainLastCommits(projectDir: File, numOfCommits: Int): String {
+	fun obtainLastCommits(projectDir: File, numOfCommits: Int, allowFetch: Boolean): String {
 		// Try to unshallow the repository if it's a shallow clone (common in CI environments like Jenkins)
-		tryUnshallowRepository(projectDir, numOfCommits)
-
+		if (numOfCommits > 1 && allowFetch) {
+			tryUnshallowRepository(projectDir, numOfCommits)
+		}
 		val gitCommand = listOf(
 			"git",
 			"log",
@@ -32,31 +29,19 @@ internal object GitUtils {
 			"--pretty=format:%s (%cn)",
 			"--no-merges",
 		)
-		val process = ProcessBuilder(gitCommand)
-			.directory(projectDir)
-			.redirectErrorStream(true)
-			.start()
-
-		return process.inputStream.bufferedReader().use(BufferedReader::readText).trim()
+		return ProcessUtils.exec(gitCommand, projectDir, logger).getOrDefault("")
 	}
 
 	private fun tryUnshallowRepository(projectDir: File, numOfCommits: Int) {
 		// Check if this is a shallow clone
 		val isShallowCommand = listOf("git", "rev-parse", "--is-shallow-repository")
-		val isShallowProcess = ProcessBuilder(isShallowCommand)
-			.directory(projectDir)
-			.redirectErrorStream(true)
-			.start()
-		val isShallow = isShallowProcess.inputStream.bufferedReader().use(BufferedReader::readText).trim() == "true"
+		val isShallow = ProcessUtils.exec(isShallowCommand, projectDir, logger).getOrNull() == "true"
 
 		if (isShallow) {
 			// Fetch additional commits to deepen the shallow clone
-			val deepenCommand = listOf("git", "fetch", "--deepen=$numOfCommits")
-			ProcessBuilder(deepenCommand)
-				.directory(projectDir)
-				.redirectErrorStream(true)
-				.start()
-				.waitFor()
+			val depth = numOfCommits * 2
+			val deepenCommand = listOf("git", "fetch", "--deepen=$depth")
+			ProcessUtils.exec(deepenCommand, projectDir, logger)
 		}
 	}
 

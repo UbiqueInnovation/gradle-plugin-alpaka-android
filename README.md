@@ -23,7 +23,7 @@ The plugin contains the following functionality:
 
 ```kotlin
 plugins {
-    id("ch.ubique.gradle.alpaka") version "9.0.0"
+    id("ch.ubique.gradle.alpaka") version "9.0.3"
 }
 ```
 
@@ -48,9 +48,10 @@ android {
 }
 
 alpaka {
-    changelogCommitCount = 10 // The number of commits to include in the changelog (optional, defaults to 10)
-    proxy = "host:port" // An optional proxy to set for the upload task.
-    labelAppIcons = false // Globally configure the generateAppIcon tasks to label with flavor name (optional, default is enabled)
+    labelAppIcons = false // Globally configure the generateAppIcon tasks to label with flavor name (default is enabled)
+    gitCommitCount = 10 // The number of commits to include in the changelog (defaults to 10)
+    gitFetchAllowed = false // Fetch the necessary commit history if it's a shallow clone (defaults to false)
+    proxy = "host:port" // An optional proxy to set for the upload task
 }
 ```
 

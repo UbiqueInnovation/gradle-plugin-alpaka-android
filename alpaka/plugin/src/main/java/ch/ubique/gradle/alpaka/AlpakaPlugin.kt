@@ -1,6 +1,7 @@
 package ch.ubique.gradle.alpaka
 
 import ch.ubique.gradle.alpaka.config.AlpakaPluginConfig
+import ch.ubique.gradle.alpaka.config.AlpakaProperties
 import ch.ubique.gradle.alpaka.extensions.android.getProductFlavors
 import ch.ubique.gradle.alpaka.extensions.android.requireBuildType
 import ch.ubique.gradle.alpaka.extensions.android.requireFlavorName
@@ -28,6 +29,8 @@ import org.gradle.kotlin.dsl.alpakaUploadKey
 import org.gradle.kotlin.dsl.launcherIconLabel
 import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import java.io.File
+import java.time.ZonedDateTime
+import java.time.temporal.ChronoUnit
 
 abstract class AlpakaPlugin : Plugin<Project> {
 
@@ -40,6 +43,12 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 		val pluginExtension = project.extensions.create("alpaka", AlpakaPluginConfig::class.java, project)
 
+		// Check if local build optimization is enabled
+		val optimizeForLocalBuild = project.findLocalProperty(AlpakaProperties.OPTIMIZE_FOR_LOCAL_BUILD)?.toBoolean() == true
+		if (optimizeForLocalBuild) {
+			project.logger.lifecycle("Alpaka: local build optimization enabled (${AlpakaProperties.OPTIMIZE_FOR_LOCAL_BUILD}=true).")
+		}
+
 		// The build ID is a unique ID for each build
 		val buildId = project.findProperty("build_id")?.toString() ?: project.findProperty("ubappid")?.toString() ?: "localbuild"
 
@@ -50,11 +59,14 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		val buildBatch = project.findProperty("build_batch")?.toString() ?: "0"
 
 		// The build timestamp is the timestamp when the build was started
-		val buildTimestampProvider = project.findProperty("build_timestamp")
-			?.toString()
-			?.toLongOrNull()
-			?.let { project.provider { it } }
-			?: project.getBuildTimestampProvider()
+		val buildTimestampFromProperty = project.findProperty("build_timestamp")?.toString()?.toLongOrNull()
+		val buildTimestampProvider = if (buildTimestampFromProperty != null) {
+			project.provider { buildTimestampFromProperty }
+		} else if (optimizeForLocalBuild) {
+			project.getLocalBuildTimestampProvider()
+		} else {
+			project.getBuildTimestampProvider()
+		}
 
 		// The build branch is the Git name of the branch
 		val vcsBranchProvider = project.findProperty("branch")
@@ -153,7 +165,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 			val buildType = variant.buildType
 			if (buildType != "release") return@onVariants
 
-			val isDryRun = project.findProperty("alpakaDryrun")?.toString()?.toBoolean() ?: false
+			val isDryRun = project.findProperty(AlpakaProperties.DRY_RUN)?.toString()?.toBoolean() ?: false
 
 			val variantName = variant.name
 			val variantNameCapitalized = variantName.capitalize()
@@ -167,6 +179,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				"compileAlpakaMetadata$variantNameCapitalized",
 				CompileAlpakaMetadataTask::class.java
 			) { metadataTask ->
+				metadataTask.onlyIf { !optimizeForLocalBuild }
 				metadataTask.applicationId = variant.applicationId
 				metadataTask.flavorName = flavorName
 				metadataTask.androidConfig = AndroidBuildConfigData(
@@ -183,7 +196,10 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				metadataTask.mergedManifestFile.set(mergedManifest)
 				val commitCount = pluginExtension.gitCommitCount.getOrElse(10)
 				val allowGitFetch = pluginExtension.gitFetchAllowed.getOrElse(false)
-				metadataTask.vcsCommitHistory = project.getGitCommitLogProvider(commitCount, allowGitFetch)
+				val vcsCommitHistoryProvider =
+					if (optimizeForLocalBuild) project.provider { "" }
+					else project.getGitCommitLogProvider(commitCount, allowGitFetch)
+				metadataTask.vcsCommitHistory = vcsCommitHistoryProvider
 				metadataTask.vcsBranch = vcsBranchProvider
 				metadataTask.vcsCommitHash = vcsCommitHash
 				metadataTask.buildId = buildId
@@ -224,6 +240,12 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				uploadTask.dependsOn(webIconLabelTask)
 				// ensure that the compilation tasks are run before, IF they're run
 				uploadTask.mustRunAfter(assembleTaskName, metadataTask)
+
+				uploadTask.doFirst {
+					if (optimizeForLocalBuild) {
+						throw GradleException("Cannot publish to Alpaka with ${AlpakaProperties.OPTIMIZE_FOR_LOCAL_BUILD} set to true")
+					}
+				}
 			}
 
 			// assembleAndPublishToAlpaka{$variant} task to assemble and publish to alpaka
@@ -264,6 +286,12 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 	private fun Project.getBuildTimestampProvider(): Provider<Long> {
 		return providers.of(BuildTimestampValueSource::class.java) {}
+	}
+
+	private fun Project.getLocalBuildTimestampProvider(): Provider<Long> {
+		return project.provider {
+			ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS).toInstant().toEpochMilli()
+		}
 	}
 
 	private fun Project.getSignatureProvider(variant: ApplicationVariant, androidExtension: ApplicationExtension): Provider<String> {
@@ -319,6 +347,22 @@ abstract class AlpakaPlugin : Plugin<Project> {
 		val productFlavors = getProductFlavors(androidExtension)
 		val flavorLabel = productFlavors.firstNotNullOfOrNull { it.launcherIconLabel }
 		return flavorLabel ?: androidExtension.defaultConfig.launcherIconLabel
+	}
+
+	/**
+	 * Finds a property by checking Gradle project properties first (CLI -P, gradle.properties,
+	 * ~/.gradle/gradle.properties), then falling back to local.properties in the root project
+	 * directory (which Gradle does not load automatically, unlike the Android Gradle Plugin).
+	 */
+	private fun Project.findLocalProperty(key: String): String? {
+		findProperty(key)?.toString()?.let { return it }
+		val localProperties = rootProject.file("local.properties")
+		if (localProperties.exists()) {
+			val props = java.util.Properties()
+			localProperties.inputStream().use { props.load(it) }
+			props.getProperty(key)?.let { return it }
+		}
+		return null
 	}
 
 }

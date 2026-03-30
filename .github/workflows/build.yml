@@ -9,7 +9,7 @@ jobs:
       fail-fast: false
       matrix:
         module: ["exampleKts", "exampleGroovy"]
-        task: ["assemble", "assembleAndPublishToAlpakaTeschtRelease -PalpakaDryrun=true"]
+        task: ["assemble", "assembleAndPublishToAlpakaTeschtRelease -Palpaka.dryRun=true"]
     steps:
       # Checkout repository
       - name: Checkout

@@ -29,8 +29,6 @@ import org.gradle.kotlin.dsl.alpakaUploadKey
 import org.gradle.kotlin.dsl.launcherIconLabel
 import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import java.io.File
-import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
 
 abstract class AlpakaPlugin : Plugin<Project> {
 
@@ -290,7 +288,8 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 	private fun Project.getLocalBuildTimestampProvider(): Provider<Long> {
 		return project.provider {
-			ZonedDateTime.now().truncatedTo(ChronoUnit.DAYS).toInstant().toEpochMilli()
+			// Peru's first National Alpaca Day
+			1343824962042L
 		}
 	}
 

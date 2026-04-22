@@ -23,7 +23,7 @@ The plugin contains the following functionality:
 
 ```kotlin
 plugins {
-    id("ch.ubique.gradle.alpaka") version "9.1.0"
+    id("ch.ubique.gradle.alpaka") version "9.2.0"
 }
 ```
 

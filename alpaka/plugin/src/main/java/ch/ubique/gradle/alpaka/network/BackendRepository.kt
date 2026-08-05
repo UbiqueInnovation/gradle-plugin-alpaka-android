@@ -16,12 +16,13 @@ internal interface BackendRepositoryInterface {
 	fun appsUpload(appMetadata: AppMetadata, apk: File, appIcon: File, uploadKey: String)
 }
 
-internal class BackendRepository(baseUrl: String) : BackendRepositoryInterface {
+internal class BackendRepository(uploadUrl: String) : BackendRepositoryInterface {
 
 	private val service: BackendService
 
 	init {
 		val httpClient = OkHttpInstance.getPreconfiguredClient()
+		val baseUrl = uploadUrl.removeSuffix("/") + "/v1/"
 		service = Retrofit.Builder()
 			.baseUrl(baseUrl)
 			.addConverterFactory(ScalarsConverterFactory.create())

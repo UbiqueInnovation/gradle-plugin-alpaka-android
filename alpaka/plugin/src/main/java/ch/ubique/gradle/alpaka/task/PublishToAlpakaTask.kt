@@ -29,8 +29,8 @@ abstract class PublishToAlpakaTask : DefaultTask() {
 	abstract var uploadKey: String
 
 	@get:Input
-	@get:Option(option = "baseUrl", description = "The Alpaka backend base URL")
-	abstract var baseUrl: String
+	@get:Option(option = "uploadUrl", description = "The Alpaka backend upload URL")
+	abstract var uploadUrl: String
 
 	@get:Input
 	@get:Option(option = "proxy", description = "A proxy in format url:port")
@@ -74,12 +74,12 @@ abstract class PublishToAlpakaTask : DefaultTask() {
 		logger.lifecycle("icon file: ${webIconFile.relativeTo(projectRootDir).path} (${webIconFile.length() / 1024} kB)")
 		logger.lifecycle("metadata:\n${appMetadata.prettyPrint().prependIndent()}")
 
-		logger.lifecycle("Uploading to Alpaka ($baseUrl) ... .. .")
+		logger.lifecycle("Uploading to Alpaka ($uploadUrl) ... .. .")
 
 		val backendRepository = if (dryrun) {
 			DryRunBackendRepository
 		} else {
-			BackendRepository(baseUrl)
+			BackendRepository(uploadUrl)
 		}
 		try {
 			backendRepository.appsUpload(appMetadata, apkFile, webIconFile, uploadKey)

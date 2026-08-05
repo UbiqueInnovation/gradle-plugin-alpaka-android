@@ -16,7 +16,7 @@ constructor(project: Project) {
 
 	val proxy: Property<String> = objects.property(String::class.java)
 
-	val baseUrl: Property<String> = objects.property(String::class.java)
+	val uploadUrl: Property<String> = objects.property(String::class.java)
 
 	val labelAppIcons: Property<Boolean> = objects.property(Boolean::class.java)
 }

@@ -18,12 +18,12 @@ dependencies {
 	implementation(libs.agp)
 	implementation(libs.kotlin.gradle)
 
-	api(libs.okhttp)
-	api(libs.retrofit)
-	api(libs.retrofitConverterScalars)
-	api(libs.moshi)
-	api(libs.moshiKotlin)
-	api(libs.moshiAdapters)
+	implementation(libs.okhttp)
+	implementation(libs.retrofit)
+	implementation(libs.retrofitConverterScalars)
+	implementation(libs.moshi)
+	implementation(libs.moshiKotlin)
+	implementation(libs.moshiAdapters)
 
 	testImplementation(libs.junit)
 }

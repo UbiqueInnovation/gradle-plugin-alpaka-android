@@ -29,7 +29,6 @@ abstract class PublishToAlpakaTask : DefaultTask() {
 	abstract var uploadKey: String
 
 	@get:Input
-	@get:Option(option = "uploadUrl", description = "The Alpaka backend upload URL")
 	abstract var uploadUrl: String
 
 	@get:Input

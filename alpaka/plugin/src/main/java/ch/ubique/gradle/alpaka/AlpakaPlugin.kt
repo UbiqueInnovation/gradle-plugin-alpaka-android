@@ -41,6 +41,9 @@ abstract class AlpakaPlugin : Plugin<Project> {
 
 		val pluginExtension = project.extensions.create("alpaka", AlpakaPluginConfig::class.java, project)
 
+		val uploadUrl = project.findLocalProperty(AlpakaProperties.UPLOAD_URL) ?: AlpakaProperties.DEFAULT_UPLOAD_URL
+		pluginExtension.uploadUrl.convention(uploadUrl)
+
 		// Check if local build optimization is enabled
 		val optimizeForLocalBuild = project.findLocalProperty(AlpakaProperties.OPTIMIZE_FOR_LOCAL_BUILD)?.toBoolean() == true
 		if (optimizeForLocalBuild) {
@@ -229,6 +232,7 @@ abstract class AlpakaPlugin : Plugin<Project> {
 				PublishToAlpakaTask::class.java
 			) { uploadTask ->
 				uploadTask.uploadKey = uploadKey ?: throw GradleException("No alpakaUploadKey specified")
+				uploadTask.uploadUrl = pluginExtension.uploadUrl.get()
 				// not using variant.artifacts.get(SingleArtifact.APK) since that creates an implicit task dependency on build
 				uploadTask.apkDir = project.layout.buildDirectory.dir("outputs/apk/$flavorName/$buildType")
 				uploadTask.webIcon = project.getGeneratedWebIconFile(flavorName, buildType)

@@ -16,36 +16,19 @@ internal interface BackendRepositoryInterface {
 	fun appsUpload(appMetadata: AppMetadata, apk: File, appIcon: File, uploadKey: String)
 }
 
-internal class BackendRepository : BackendRepositoryInterface {
+internal class BackendRepository(uploadUrl: String) : BackendRepositoryInterface {
 
-	companion object {
-
-		private var _service: BackendService? = null
-		private var serviceCreationException: Exception? = null
-
-		private var service: BackendService
-			get() = _service ?: throw (serviceCreationException ?: UninitializedPropertyAccessException())
-			set(value) {
-				_service = value
-			}
-
-		fun resetService() {
-			try {
-				val httpClient = OkHttpInstance.getPreconfiguredClient()
-				_service = Retrofit.Builder()
-					.baseUrl("https://alpaka.ubique.ch/v1/")
-					.addConverterFactory(ScalarsConverterFactory.create())
-					.client(httpClient)
-					.build()
-					.create(BackendService::class.java)
-			} catch (e: Exception) {
-				serviceCreationException = e
-			}
-		}
-	}
+	private val service: BackendService
 
 	init {
-		resetService()
+		val httpClient = OkHttpInstance.getPreconfiguredClient()
+		val baseUrl = uploadUrl.removeSuffix("/") + "/v1/"
+		service = Retrofit.Builder()
+			.baseUrl(baseUrl)
+			.addConverterFactory(ScalarsConverterFactory.create())
+			.client(httpClient)
+			.build()
+			.create(BackendService::class.java)
 	}
 
 	override fun appsUpload(appMetadata: AppMetadata, apk: File, appIcon: File, uploadKey: String) {
